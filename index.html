@@ -101,6 +101,15 @@ details.alerts li{font-size:13.5px;margin:8px 0 0 18px}
 .att-row p{font-size:13px;color:#444}
 .att-row .con{font-size:12.3px;color:#9a4a22;margin-top:4px}
 .att-row .lk{font-size:12.5px;margin-top:5px}
+.att-row2{background:#fff;border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;margin-bottom:11px;font-size:13px}
+.att-row2 .meta{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.att-row2 p{color:#444}
+.att-row2 .con{font-size:12.3px;color:#9a4a22;margin-top:4px}
+.att-row2 .lk{font-size:12.5px;margin-top:5px}
+.strip{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:9px}
+.strip img{width:100%;height:110px;object-fit:cover;border-radius:8px;background:#dfe8e3;display:block}
+.strip .noimg{display:none}
+@media(max-width:700px){.strip img{height:80px}}
 .tier{margin-bottom:16px}
 .tier>b{font-size:14.5px;color:#173d2f}
 .hrow,.frow{background:#fff;border-radius:11px;box-shadow:var(--shadow);padding:11px 14px;margin-top:8px;font-size:13.5px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
@@ -124,13 +133,24 @@ details.alerts li{font-size:13.5px;margin:8px 0 0 18px}
 .rk .bar{height:5px;background:#eee9dd;border-radius:99px;overflow:hidden}
 .rk .bar i{display:block;height:100%;background:linear-gradient(90deg,#2e8b6e,#1a6b52)}
 .rk .rk-foot{display:flex;justify-content:space-between;align-items:center;margin-top:2px}
+.rk .rk-atts{display:none;border-top:1px dashed #eee9df;margin-top:4px;padding-top:7px}
+.rk.open .rk-atts{display:block}
+.rk.open .why{-webkit-line-clamp:unset}
+.ra{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:3px 0}
+.ra em{font-style:normal;color:var(--gold);font-weight:700;font-size:11px;white-space:nowrap}
+.rk-ops{display:flex;gap:8px;margin-top:8px}
+.rk-ops .btn{font-size:12px;padding:6px 10px}
 .rk .inplan{font-size:11px;border-radius:99px;padding:2px 9px;background:#eef3f0;color:#33584a;font-weight:700}
 .rk .inplan.no{background:#f3f0ea;color:#999}
 
 /* Section 3 */
-.plan-grid{display:grid;grid-template-columns:minmax(300px,1fr) minmax(0,1.6fr);gap:18px;align-items:start}
-@media(max-width:950px){.plan-grid{grid-template-columns:1fr}}
-.controls{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+.plan-grid{display:block}
+.controls{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:4px 26px;align-items:start}
+.ctl-col{min-width:0}
+#cityrows{max-height:330px;overflow-y:auto;padding-right:3px}
+.controls .attpick{max-height:300px;overflow-y:auto;padding-right:3px}
+.controls .gen-btns{grid-column:1/-1}
+.outp{margin-top:16px}
 .controls h3{font-size:15px;color:#173d2f;margin:14px 0 8px}
 .controls h3:first-child{margin-top:0}
 .ctl-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:14px}
@@ -311,19 +331,23 @@ footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 16px 4
 </div>
 
 <nav id="nav">
-  <a href="#explore" class="active">🗺️ 探索地图</a>
-  <a href="#ranking">🏆 目的地排行</a>
-  <a href="#planner">🛠️ 行程规划器</a>
-  <a href="#reference">📚 参考资料</a>
-  <a href="trip-guide.html" target="_blank">📖 图文版攻略 ↗</a>
+  <a href="#" data-view="explore" class="active">🗺️ 探索地图</a>
+  <a href="#" data-view="ranking">🏆 目的地排行</a>
+  <a href="#" data-view="planner">🛠️ 行程规划器</a>
+  <a href="#" data-view="overview">📅 行程总览</a>
+  <a href="#" data-view="reference">📚 参考资料</a>
+  <a href="trip-guide.html" target="_blank">📖 图文攻略 ↗</a>
 </nav>
 
 <main>
 
+<!-- ============ SECTION 1 ============ -->
+<section id="explore">
+
 <div class="steps">
-  <a href="#explore"><b>①</b><span>🗺️ 探索目的地<small>地图上看 18 个候选地的评分与亮点</small></span></a>
-  <a href="#ranking"><b>②</b><span>🏆 帮你取舍<small>排行榜一键把心动的加入行程</small></span></a>
-  <a href="#planner"><b>③</b><span>🛠️ 生成行程<small>自动排程 · 拖拽微调 · 订票清单</small></span></a>
+  <a href="#" data-view="explore"><b>①</b><span>🗺️ 探索目的地<small>地图上看 18 个候选地的评分与亮点</small></span></a>
+  <a href="#" data-view="ranking"><b>②</b><span>🏆 帮你取舍<small>排行榜一键把心动的加入行程</small></span></a>
+  <a href="#" data-view="planner"><b>③</b><span>🛠️ 生成行程<small>自动排程或自由拖搭 · 订票清单</small></span></a>
 </div>
 
 <details class="alerts">
@@ -331,8 +355,6 @@ footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 16px 4
   <ul id="alertlist"></ul>
 </details>
 
-<!-- ============ SECTION 1 ============ -->
-<section id="explore">
   <h2>🗺️ 探索地图 <span class="en">点击图钉或城市名 → 右侧生成卡片 → 展开完整攻略</span></h2>
   <p class="sub">绿钉=已在行程 · 灰钉=候选可加入 · 点城市看景点分布，路线随选择实时重绘</p>
   <div class="explorer">
@@ -355,7 +377,7 @@ footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 16px 4
 <!-- ============ SECTION 2 ============ -->
 <section id="ranking">
   <h2>🏆 目的地排行 <span class="en">基于：朋友出行 · 快节奏 · 8月盛夏 · €100–180住宿档</span></h2>
-  <p class="sub">推荐指数综合季节、体验密度、口碑与性价比 · 点卡片跳地图，或直接「＋加入」</p>
+  <p class="sub">推荐指数综合季节、体验密度、口碑与性价比 · 点卡片展开看核心景点 · 直接「＋加入」进行程</p>
   <div class="rank" id="ranklist"></div>
 </section>
 
@@ -365,6 +387,7 @@ footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 16px 4
   <p class="sub">🤖 自动排程：选城市调晚数一键生成 · 🎨 自由拖搭：按天丢景点自动配住宿 · 所有选择自动保存</p>
   <div class="plan-grid">
     <div class="controls">
+      <div class="ctl-col">
       <h3>① 基本参数</h3>
       <div class="ctl-row">
         出发 <input type="date" id="p-date" value="2026-08-01">
@@ -382,19 +405,22 @@ footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 16px 4
         🛬 首日抵达 <input type="time" id="p-arr">
         🛫 末日起飞 <input type="time" id="p-dep">
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-top:5px">留空 = 按整天排。填了会自动扣除出关取行李(1.5h)和赴机场提前量(3h)，压缩首/末日行程量</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:5px">航班时间留空=按整天排；填了自动扣除出关(1.5h)与赴机场(3h)</div>
       <div class="ctl-row" style="margin-top:10px">
         排程方式
         <span class="modew"><button type="button" id="mode-auto" class="on">🤖 自动排程</button><button type="button" id="mode-manual">🎨 自由拖搭</button></span>
       </div>
-      <div id="autoOnly">
+      <div id="manualHint" style="display:none;font-size:13px;color:#33584a;margin-top:12px;background:#f0f7f4;border-radius:10px;padding:10px 13px">🎨 自由拖搭：在下方天数卡片里「＋添加景点」——<b>每天最后一个点所在城市 = 当晚住宿</b>，交通自动衔接。</div>
+      </div>
+      <div class="ctl-col autoOnly">
       <h3>② 选择目的地 · 过夜数 · 顺序(▲▼)</h3>
       <div id="cityrows"></div>
       <div class="nights-status" id="nstatus"></div>
+      </div>
+      <div class="ctl-col autoOnly">
       <h3>③ 勾选想去的景点</h3>
       <div class="attpick" id="attpick"></div>
       </div>
-      <div id="manualHint" style="display:none;font-size:13px;color:#33584a;margin-top:12px;background:#f0f7f4;border-radius:10px;padding:10px 13px">🎨 自由拖搭：直接在右侧天数卡片里「＋添加景点」搭行程——<b>每天最后一个点所在城市 = 当晚住宿</b>，城市变化时交通自动衔接。不需要分配城市和晚数。</div>
       <div class="gen-btns gen-sticky">
         <button class="btn pri" id="gen">⚡ 生成行程</button>
         <button class="btn sec" id="reset">↺ 重置</button>
@@ -412,7 +438,13 @@ footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 16px 4
   </div>
 </section>
 
-<!-- ============ SECTION 4: 参考资料 ============ -->
+<!-- ============ SECTION 4: 行程总览 ============ -->
+<section id="overview">
+  <h2>📅 行程总览 <span class="en">一页看全程 · 详细安排与调整在规划器</span></h2>
+  <div id="ov-body"><div class="placeholder">生成行程后这里会显示总览</div></div>
+</section>
+
+<!-- ============ SECTION 5: 参考资料 ============ -->
 <section id="reference">
   <h2>📚 参考资料 <span class="en">出行时查阅 · 时刻以官网为准</span></h2>
   <div class="ref-tabs">
@@ -453,7 +485,7 @@ footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 16px 4
 
 <div id="tripbar">
   <div class="tb-route" id="tb-route"></div>
-  <a href="#planner" class="btn pri tb-btn">🛠️ 去规划器</a>
+  <a href="#" data-view="planner" class="btn pri tb-btn">🛠️ 去规划器</a>
 </div>
 
 <footer>交互式旅行规划器 · 数据核实于 2026 年 7 月 · 价格与开放时间以官网为准 · 图片 Wikimedia/Bing · 地图 © OpenStreetMap<br>换个目的地？把新数据交给 Claude 按 TRIP 结构生成即可，引擎零改动</footer>
@@ -1294,14 +1326,21 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
 function renderTab(t){
   const c=modalCity, el=$("#m-body");
   if(t==="atts"){
-    el.innerHTML=c.atts.slice().sort((a,b)=>b.rec-a.rec||b.r-a.r).map(a=>
-      '<div class="att-row">'+imgTag(a.img,a.en+" "+c.en,"ph",800)+
-        '<div class="ar-b"><b>'+esc(a.zh)+' <small class="enin">'+esc(a.en)+"</small></b>"+
+    el.innerHTML=c.atts.slice().sort((a,b)=>b.rec-a.rec||b.r-a.r).map(a=>{
+      const gi="https://www.google.com/search?tbm=isch&q="+encodeURIComponent(a.en+" "+c.en);
+      return '<div class="att-row2">'+
+        '<a class="strip" href="'+gi+'" target="_blank" title="点击查看更多图片">'+
+          imgTag(a.img,a.en+" "+c.en,"hide",700)+
+          '<img src="'+bing(a.en+" "+c.en+" photo",700)+'" loading="lazy" data-final="hide" onerror="imgErr(this)" alt="">'+
+          '<img src="'+bing(a.zh+" "+c.zh,700)+'" loading="lazy" data-final="hide" onerror="imgErr(this)" alt="">'+
+        "</a>"+
+        '<b>'+esc(a.zh)+' <small class="enin">'+esc(a.en)+"</small></b>"+
         '<div class="meta"><span class="pill gold">★ '+a.r+'</span><span class="pill">推荐 '+"⭐".repeat(a.rec)+'</span><span class="pill">建议 '+a.h+'h</span><span class="pill">'+esc(a.price)+"</span></div>"+
         "<p>"+esc(a.desc)+"</p>"+
         '<div class="con">⚠️ '+esc(a.con)+"</div>"+
-        '<div class="lk">'+(a.url?'<a href="'+a.url+'" target="_blank">官网 ↗</a> · ':"")+'<a href="'+gm(a.en+" "+c.en)+'" target="_blank">Google Maps ↗</a></div>'+
-        "</div></div>").join("");
+        '<div class="lk">'+(a.url?'<a href="'+a.url+'" target="_blank">官网 ↗</a> · ':"")+'<a href="'+gm(a.en+" "+c.en)+'" target="_blank">地图 ↗</a> · <a href="'+gi+'" target="_blank">更多图片 ↗</a></div>'+
+      "</div>";
+    }).join("");
   } else if(t==="hotels"){
     el.innerHTML='<div class="note">💡 点击酒店名直接跳 Google Maps 查看实时价格与评价；旺季建议提前 60–90 天锁定可免费取消的房价。</div>'+
       ["budget","comfort","luxury"].map(tier=>{
@@ -1337,14 +1376,23 @@ function renderRank(){
       '<div class="en2">'+esc(c.en)+" · ★"+c.r.toFixed(1)+" · 建议"+(c.nights===0?"半天":c.nights+"晚")+"</div>"+
       '<div class="why">'+esc(TRIP.rankWhy[c.id]||c.bestFor)+"</div>"+
       '<div class="bar"><i style="width:'+c.rec+'%"></i></div>'+
-      '<div class="rk-foot"><span class="inplan'+(state.on[c.id]?"":" no")+'">'+(state.on[c.id]?"✓ 已在行程":"候选")+"</span>"+
+      '<div class="rk-atts">'+
+        c.atts.slice().sort((a,b)=>b.rec-a.rec||b.r-a.r).slice(0,6).map(a=>
+          '<div class="ra"><span>'+esc(a.zh)+' <small class="enin">'+esc(a.en)+"</small></span><em>★"+a.r+" · "+a.h+"h</em></div>").join("")+
+        '<div class="rk-ops"><button class="btn sec rk-map" data-id="'+c.id+'">🗺️ 地图</button><button class="btn sec rk-guide" data-id="'+c.id+'">📖 完整攻略</button></div>'+
+      "</div>"+
+      '<div class="rk-foot"><span class="inplan'+(state.on[c.id]?"":" no")+'">'+(state.on[c.id]?"✓ 已在行程":"候选")+' <small style="color:#bbb">▾点开看景点</small></span>'+
       '<button class="btn '+(state.on[c.id]?"warn":"pri")+' rk-add" data-id="'+c.id+'">'+(state.on[c.id]?"− 移出":"＋ 加入")+"</button></div>"+
     "</div>").join("");
-  $$("#ranklist .rk").forEach(r=>r.addEventListener("click",()=>{
-    location.hash="explore"; selectCity(r.dataset.id,true);
-  }));
+  $$("#ranklist .rk").forEach(r=>r.addEventListener("click",()=>r.classList.toggle("open")));
   $$("#ranklist .rk-add").forEach(b=>b.addEventListener("click",e=>{
     e.stopPropagation(); toggleCity(b.dataset.id);
+  }));
+  $$("#ranklist .rk-map").forEach(b=>b.addEventListener("click",e=>{
+    e.stopPropagation(); switchView("explore"); selectCity(b.dataset.id,true);
+  }));
+  $$("#ranklist .rk-guide").forEach(b=>b.addEventListener("click",e=>{
+    e.stopPropagation(); openModal(b.dataset.id);
   }));
 }
 
@@ -1429,7 +1477,7 @@ function renderControls(){
   }));
   document.getElementById("mode-auto").classList.toggle("on",state.mode!=="manual");
   document.getElementById("mode-manual").classList.toggle("on",state.mode==="manual");
-  document.getElementById("autoOnly").style.display=state.mode==="manual"?"none":"";
+  $$(".autoOnly").forEach(x=>{x.style.display=state.mode==="manual"?"none":"";});
   document.getElementById("manualHint").style.display=state.mode==="manual"?"":"none";
   renderTripBar();
 }
@@ -1726,7 +1774,9 @@ function attachPlanEvents(p){
   /* 当日路线上图 */
   $$("#output .dmap").forEach(btn=>btn.addEventListener("click",e=>{
     e.stopPropagation();
-    showDayOnMap(p,parseInt(btn.dataset.day));
+    const di=parseInt(btn.dataset.day);
+    switchView("explore");
+    setTimeout(()=>showDayOnMap(p,di),140);
   }));
   /* 旅行模式：跳到今天 */
   const jt=document.getElementById("jumptoday");
@@ -2143,17 +2193,69 @@ renderMaster();
 /* 旅行模式：出行期间打开网站，自动滚到今天 */
 setTimeout(()=>{
   const el=document.querySelector("#output .oday.today");
-  if(el)el.scrollIntoView({behavior:"smooth",block:"center"});
+  if(el){switchView("planner"); el.scrollIntoView({behavior:"smooth",block:"center"});}
 },700);
 
-/* ---------- nav spy + totop ---------- */
-const secs=Array.prototype.slice.call($$("main section")), links=Array.prototype.slice.call($$("nav a"));
-const spy=new IntersectionObserver(es=>{
-  es.forEach(e=>{if(e.isIntersecting){
-    links.forEach(l=>l.classList.toggle("active",l.getAttribute("href")==="#"+e.target.id));
-  }});
-},{rootMargin:"-25% 0px -65% 0px"});
-secs.forEach(s=>spy.observe(s));
+/* ---------- 📅 行程总览页 ---------- */
+function renderOverview(){
+  const el=document.getElementById("ov-body"); if(!el)return;
+  const startParts=(state.date||"2026-08-01").split("-");
+  const start=new Date(parseInt(startParts[0]),parseInt(startParts[1])-1,parseInt(startParts[2]));
+  const daysArr=[];
+  if(state.mode==="manual"){
+    manualEnsure();
+    let lastS=null;
+    state.manualDays.forEach((day,i)=>{
+      if(day.length)lastS=cityById(day[day.length-1].c);
+      daysArr.push({date:addDays(start,i),city:lastS,names:day.map(it=>cityById(it.c).atts[it.i].zh),via:[]});
+    });
+  }else{
+    const p=computePlan();
+    if(p.err){el.innerHTML='<div class="placeholder">'+esc(p.err)+"</div>";return;}
+    p.dayList.forEach((d,i)=>{
+      const pl=p.plans[i];
+      const names=pl.items.map(it=>it.a.zh);
+      if(pl.evening)names.push("🌙"+pl.evening.a.zh);
+      daysArr.push({date:d.date,city:d.city,names:names,via:d.via.map(v=>v.city.zh)});
+    });
+  }
+  const seq=[]; daysArr.forEach(d=>{if(d.city&&(!seq.length||seq[seq.length-1].id!==d.city.id))seq.push(d.city);});
+  let html='<div class="osum"><b class="big">'+daysArr.length+" 天 · "+(seq.length?seq.map(c=>c.flag+esc(c.zh)).join(" → "):"尚未安排")+'</b>'+
+    '<div class="tags"><span class="pill">出发 '+esc(state.date)+'</span>'+
+    (state.arrTime?'<span class="pill">🛬 '+esc(state.arrTime)+"</span>":"")+
+    (state.depTime?'<span class="pill">🛫 '+esc(state.depTime)+"</span>":"")+
+    '<span class="pill">'+esc(TIER_LABEL[state.budget])+'</span><span class="pill">'+(state.mode==="manual"?"🎨 自由拖搭":"🤖 自动排程")+"</span></div></div>";
+  html+='<div class="tblwrap"><table><tr><th>天</th><th>日期</th><th>城市</th><th>安排</th></tr>'+
+    daysArr.map((d,i)=>{
+      const wd=d.date.getDay();
+      return "<tr><td><b>D"+(i+1)+"</b></td><td style='white-space:nowrap'>"+fmtDate(d.date)+" 周"+WD[wd]+"</td><td style='white-space:nowrap'>"+(d.city?d.city.flag+" "+esc(d.city.zh):"—")+(d.via&&d.via.length?"<span class='en'>经 "+d.via.map(v=>esc(v)).join("、")+"</span>":"")+"</td><td>"+(d.names.length?d.names.map(n=>esc(n)).join(" · "):"<span style='color:#aaa'>自由活动 / 赶路</span>")+"</td></tr>";
+    }).join("")+"</table></div>";
+  html+='<div class="gen-btns" style="margin-top:14px"><button class="btn pri" id="ov-go">🛠️ 去规划器调整</button><button class="btn sec" id="ov-copy">📋 复制文本</button></div>';
+  el.innerHTML=html;
+  document.getElementById("ov-go").addEventListener("click",()=>switchView("planner"));
+  document.getElementById("ov-copy").addEventListener("click",()=>{
+    generate();
+    try{navigator.clipboard.writeText(planText).catch(()=>fallbackCopy(planText));}catch(e){fallbackCopy(planText);}
+    const b=document.getElementById("ov-copy"); if(b){b.textContent="✅ 已复制"; setTimeout(()=>{b.textContent="📋 复制文本";},2000);}
+  });
+}
+
+/* ---------- 分页视图切换 ---------- */
+const VIEWS=["explore","ranking","planner","overview","reference"];
+function switchView(v){
+  if(VIEWS.indexOf(v)<0)v="explore";
+  VIEWS.forEach(id=>{const s=document.getElementById(id); if(s)s.style.display=(id===v)?"":"none";});
+  $$("nav a[data-view]").forEach(a=>a.classList.toggle("active",a.dataset.view===v));
+  window.scrollTo({top:0});
+  if(v==="explore")setTimeout(()=>{try{map.invalidateSize();}catch(e){}},80);
+  if(v==="overview")renderOverview();
+  try{localStorage.setItem("lastView",v);}catch(e){}
+}
+$$("[data-view]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();switchView(a.dataset.view);}));
+let initView="explore";
+try{initView=localStorage.getItem("lastView")||"explore";}catch(e){}
+switchView(initView);
+
 window.addEventListener("scroll",()=>{
   document.getElementById("totop").classList.toggle("show",window.scrollY>600);
 });
