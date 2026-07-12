@@ -259,6 +259,9 @@ body{padding-bottom:56px}
 .morecity{border:1.5px dashed #d8d4c8;border-radius:11px;margin-top:9px;background:#faf9f5}
 .morecity summary{padding:10px 12px;font-size:13.5px;font-weight:700;color:var(--accent);cursor:pointer}
 .morecity .cityrow{margin:0 8px 8px}
+.ord{display:flex;flex-direction:column;gap:2px;flex:0 0 auto}
+.ord button{width:21px;height:16px;border:1px solid #d8d4c8;background:#fff;border-radius:5px;font-size:9px;line-height:1;padding:0;color:#666}
+.ord button:hover{border-color:var(--accent);color:var(--accent)}
 .gen-sticky{position:sticky;bottom:62px;z-index:20;background:var(--card);box-shadow:0 -8px 12px -8px rgba(0,0,0,.12);border-radius:0 0 var(--radius) var(--radius);margin:14px -18px -18px;padding:12px 18px 14px}
 
 /* 排行榜加入按钮 */
@@ -344,7 +347,7 @@ footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 16px 4
 <!-- ============ SECTION 3 ============ -->
 <section id="planner">
   <h2>🛠️ 行程规划器 <span class="en">默认已载入系统推荐方案 · 改任何选项后点"生成行程"</span></h2>
-  <p class="sub">勾选城市（顺序自动按地理走廊排列，不走回头路）→ 调晚数 → 勾景点 → 挑预算 → 生成。未收录的城市间交通会按距离自动估算并给出谷歌导航链接。选择自动保存在本机。</p>
+  <p class="sub">勾选城市（默认按地理走廊排序不走回头路，▲▼ 可手动调整途经顺序）→ 调晚数 → 勾景点 → 挑预算 → 生成。反向/未收录路段自动匹配车次或按距离估算。选择自动保存在本机。</p>
   <div class="plan-grid">
     <div class="controls">
       <h3>① 基本参数</h3>
@@ -365,7 +368,7 @@ footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 16px 4
         🛫 末日起飞 <input type="time" id="p-dep">
       </div>
       <div style="font-size:12px;color:var(--muted);margin-top:5px">留空 = 按整天排。填了会自动扣除出关取行李(1.5h)和赴机场提前量(3h)，压缩首/末日行程量</div>
-      <h3>② 选择目的地 & 过夜数</h3>
+      <h3>② 选择目的地 · 过夜数 · 顺序(▲▼)</h3>
       <div id="cityrows"></div>
       <div class="nights-status" id="nstatus"></div>
       <h3>③ 勾选想去的景点</h3>
@@ -1005,6 +1008,7 @@ const bing=(q,w)=>{w=w||1200;return "https://tse2.mm.bing.net/th?q="+encodeURICo
 function wikiFile(u){const m=/\/commons\/thumb\/[0-9a-f]\/[0-9a-f]{2}\/([^\/]+)\//.exec(u||"");return m?m[1]:null;}
 function hiRes(u,w){const f=wikiFile(u);return f?"https://commons.wikimedia.org/w/thumb.php?f="+f+"&width="+(w||1200):(u||"");}
 const cityById=id=>TRIP.cities.find(c=>c.id===id);
+const orderedCities=()=>((typeof state!=="undefined"&&state&&state.order)?state.order:TRIP.cities.map(c=>c.id)).map(cityById).filter(Boolean);
 const WD=["日","一","二","三","四","五","六"];
 const TIER_LABEL={budget:"经济 💰",comfort:"舒适 💰💰",luxury:"高端 💰💰💰"};
 const MODE_COLOR={train:"#2563eb",drive:"#d97706",bus:"#7c3aed"};
@@ -1044,6 +1048,8 @@ function hav(p,q){
 function getLeg(a,b){
   const l=TRIP.legs[a.id+">"+b.id];
   if(l) return l;
+  const rv=TRIP.legs[b.id+">"+a.id];
+  if(rv) return rv; /* 反向路段复用同一车次/车程数据 */
   const km=Math.round(hav(a.c,b.c)*1.3);
   const h=Math.max(0.5,Math.round(km/85*10)/10);
   return {mode:"drive",icon:"🚗",name:"自驾（估算）",dur:"约"+h+"h",durH:h,dist:"~"+km+"km",price:"油费~€"+Math.round(km*0.11),freq:"—",
@@ -1053,6 +1059,7 @@ function getLeg(a,b){
 
 /* ---------- 状态（含旧存档迁移）---------- */
 const DEFAULTS={date:"2026-08-01",days:9,budget:"comfort",arrTime:"",depTime:"",
+  order:["fra","hd","rot","nur","fus","gap","muc","ibk","kon","sbg","lakes","vie","bts","ck","kh","prg","dre"],
   on:{fra:true,hd:false,rot:false,nur:false,fus:false,gap:false,muc:true,ibk:false,kon:false,sbg:true,lakes:true,vie:true,bts:false,ck:false,kh:false,prg:true,dre:false},
   nights:{fra:0,hd:0,rot:0,nur:0,fus:0,gap:0,muc:2,ibk:0,kon:0,sbg:0,lakes:3,vie:2,bts:0,ck:0,kh:0,prg:1,dre:0},
   atts:null};
@@ -1074,6 +1081,12 @@ function normalizeState(s){
   if(!s.budget) s.budget=DEFAULTS.budget;
   if(typeof s.arrTime!=="string") s.arrTime="";
   if(typeof s.depTime!=="string") s.depTime="";
+  const canon=TRIP.cities.map(c=>c.id);
+  if(!Array.isArray(s.order)) s.order=canon.slice();
+  else{
+    s.order=s.order.filter(id=>canon.indexOf(id)>=0);
+    canon.forEach(id=>{if(s.order.indexOf(id)<0)s.order.push(id);});
+  }
   return s;
 }
 function loadState(){try{return normalizeState(JSON.parse(localStorage.getItem("plannerState")))}catch(e){return null}}
@@ -1109,7 +1122,7 @@ map.fitBounds(TRIP.cities.map(c=>c.c),{padding:[40,40]});
 
 function drawRoute(){
   routeLayer.clearLayers();
-  const selIds=TRIP.cities.filter(c=>state.on[c.id]).map(c=>c.id);
+  const selIds=orderedCities().filter(c=>state.on[c.id]).map(c=>c.id);
   for(let i=0;i<selIds.length-1;i++){
     const a=cityById(selIds[i]), b=cityById(selIds[i+1]), leg=getLeg(a,b);
     L.polyline([a.c,b.c],{color:MODE_COLOR[leg.mode]||"#888",weight:4,dashArray:leg.mode==="train"?"8 6":null,opacity:.85})
@@ -1130,8 +1143,8 @@ function renderChips(){
 }
 
 function prevLegOf(id){
-  const selIds=TRIP.cities.filter(c=>state.on[c.id]).map(c=>c.id);
-  let list=selIds.indexOf(id)>=0?selIds:TRIP.cities.map(c=>c.id);
+  const selIds=orderedCities().filter(c=>state.on[c.id]).map(c=>c.id);
+  let list=selIds.indexOf(id)>=0?selIds:orderedCities().map(c=>c.id);
   const i=list.indexOf(id);
   if(i<=0) return null;
   const from=cityById(list[i-1]);
@@ -1278,7 +1291,7 @@ function renderRank(){
 /* ---------- 全局悬浮行程条 ---------- */
 function renderTripBar(){
   const el=document.getElementById("tb-route"); if(!el)return;
-  const sel=TRIP.cities.filter(c=>state.on[c.id]);
+  const sel=orderedCities().filter(c=>state.on[c.id]);
   const used=sel.reduce((s,c)=>s+state.nights[c.id],0);
   const need=(state.days||9)-1;
   el.innerHTML=(sel.length?sel.map(c=>c.flag+esc(c.zh)+(state.nights[c.id]?"<b>"+state.nights[c.id]+"晚</b>":"")).join("<i>→</i>"):"尚未选择目的地——去探索地图或排行榜加入")+
@@ -1286,6 +1299,14 @@ function renderTripBar(){
 }
 
 /* ---------- Section 3: planner ---------- */
+function moveCity(id,dir){
+  const o=state.order, i=o.indexOf(id); if(i<0)return;
+  let j=i+dir;
+  while(j>=0&&j<o.length&&!state.on[o[j]]) j+=dir; /* 跳过未选中的候选 */
+  if(j<0||j>=o.length)return;
+  const t=o[i]; o[i]=o[j]; o[j]=t;
+  saveState(); renderControls(); drawRoute();
+}
 let morecityOpen=false;
 function renderControls(){
   $("#p-date").value=state.date;
@@ -1296,14 +1317,19 @@ function renderControls(){
   const rowHtml=c=>
     '<div class="cityrow'+(state.on[c.id]?"":" off")+'" data-id="'+c.id+'">'+
       '<input type="checkbox" '+(state.on[c.id]?"checked":"")+">"+
+      (state.on[c.id]?'<span class="ord"><button type="button" class="up" title="顺序上移">▲</button><button type="button" class="dn" title="顺序下移">▼</button></span>':"")+
       '<span class="nm">'+c.flag+" "+esc(c.zh)+"<small>推荐 "+(c.nights===0?"半天(0晚)":c.nights+"晚")+" · ★"+c.r.toFixed(1)+" · 指数"+c.rec+"</small></span>"+
       '<span class="stepper"><button type="button" class="mn">−</button><span class="nv">'+state.nights[c.id]+' 晚</span><button type="button" class="pl">＋</button></span>'+
     "</div>";
-  const selC=TRIP.cities.filter(c=>state.on[c.id]), unselC=TRIP.cities.filter(c=>!state.on[c.id]);
+  const selC=orderedCities().filter(c=>state.on[c.id]), unselC=orderedCities().filter(c=>!state.on[c.id]);
+  const isCustomOrder=state.order.join(",")!==TRIP.cities.map(c=>c.id).join(",");
   $("#cityrows").innerHTML=selC.map(rowHtml).join("")+
-    (unselC.length?'<details class="morecity"'+(morecityOpen?" open":"")+'><summary>＋ 添加更多目的地（'+unselC.length+' 个候选）</summary>'+unselC.map(rowHtml).join("")+"</details>":"");
+    (unselC.length?'<details class="morecity"'+(morecityOpen?" open":"")+'><summary>＋ 添加更多目的地（'+unselC.length+' 个候选）</summary>'+unselC.map(rowHtml).join("")+"</details>":"")+
+    '<div style="font-size:12px;color:var(--muted);margin-top:7px;display:flex;justify-content:space-between"><span>▲▼ 可手动调整途经顺序</span>'+(isCustomOrder?'<u style="cursor:pointer;color:var(--accent2)" id="resetorder">↺ 恢复推荐顺序</u>':"")+"</div>";
   const mc=document.querySelector("#cityrows .morecity");
   if(mc)mc.addEventListener("toggle",()=>{morecityOpen=mc.open;});
+  const ro=document.getElementById("resetorder");
+  if(ro)ro.addEventListener("click",()=>{state.order=TRIP.cities.map(c=>c.id); saveState(); renderControls(); drawRoute();});
   $$("#cityrows .cityrow").forEach(row=>{
     const id=row.dataset.id;
     row.querySelector("input").addEventListener("change",e=>{
@@ -1314,6 +1340,9 @@ function renderControls(){
     });
     row.querySelector(".mn").addEventListener("click",()=>{if(state.nights[id]>0){state.nights[id]--; saveState(); renderControls();}});
     row.querySelector(".pl").addEventListener("click",()=>{if(state.nights[id]<14){state.nights[id]++; saveState(); renderControls();}});
+    const up=row.querySelector(".up"), dn=row.querySelector(".dn");
+    if(up)up.addEventListener("click",()=>moveCity(id,-1));
+    if(dn)dn.addEventListener("click",()=>moveCity(id,1));
   });
   const need=Math.max(0,(parseInt($("#p-days").value)||2)-1);
   const used=TRIP.cities.reduce((s,c)=>s+(state.on[c.id]?state.nights[c.id]:0),0);
@@ -1379,7 +1408,7 @@ function encodeShare(){
     let mask=0; ct.atts.forEach((a,i)=>{if(state.atts[ct.id][i])mask|=(1<<i);});
     c[ct.id]=[state.on[ct.id]?1:0,state.nights[ct.id],mask];
   });
-  const json=JSON.stringify({d:state.date,y:state.days,b:state.budget,a:state.arrTime||"",t:state.depTime||"",c:c});
+  const json=JSON.stringify({d:state.date,y:state.days,b:state.budget,a:state.arrTime||"",t:state.depTime||"",o:state.order.join(","),c:c});
   return btoa(unescape(encodeURIComponent(json))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 }
 function decodeShare(s){
@@ -1390,6 +1419,12 @@ function decodeShare(s){
     const ns=JSON.parse(JSON.stringify(DEFAULTS)); ns.atts=defaultAttSel();
     if(obj.d)ns.date=obj.d; if(obj.y)ns.days=obj.y; if(obj.b)ns.budget=obj.b;
     if(typeof obj.a==="string")ns.arrTime=obj.a; if(typeof obj.t==="string")ns.depTime=obj.t;
+    if(typeof obj.o==="string"&&obj.o){
+      const canon=TRIP.cities.map(ct2=>ct2.id);
+      const ord=obj.o.split(",").filter(id=>canon.indexOf(id)>=0);
+      canon.forEach(id=>{if(ord.indexOf(id)<0)ord.push(id);});
+      ns.order=ord;
+    }
     TRIP.cities.forEach(ct=>{
       const v=obj.c&&obj.c[ct.id];
       if(v){ns.on[ct.id]=!!v[0]; ns.nights[ct.id]=v[1]||0;
@@ -1419,7 +1454,7 @@ function computePlan(){
   const start=new Date(parseInt(startParts[0]),parseInt(startParts[1])-1,parseInt(startParts[2]));
   const days=parseInt($("#p-days").value)||9;
   const budget=$("#p-budget").value;
-  const sel=TRIP.cities.filter(c=>state.on[c.id]);
+  const sel=orderedCities().filter(c=>state.on[c.id]);
   if(sel.length===0) return {err:"请至少选择一个城市"};
 
   const need=days-1;
