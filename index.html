@@ -18,7 +18,7 @@ a{color:var(--accent);text-decoration:none}
 a:hover{text-decoration:underline}
 button{font-family:inherit;cursor:pointer}
 
-.hero{position:relative;color:#fff;text-align:center;min-height:340px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(135deg,#123f31,#1a6b52 55%,#2e8b6e)}
+.hero{position:relative;color:#fff;text-align:center;min-height:300px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(135deg,#123f31,#1a6b52 55%,#2e8b6e)}
 .hero .bg{position:absolute;inset:0;z-index:0}
 .hero .bg img{width:100%;height:100%;object-fit:cover;display:block}
 .hero .shade{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(8,22,16,.30) 0%,rgba(8,22,16,.45) 55%,rgba(8,22,16,.72) 100%)}
@@ -27,16 +27,16 @@ button{font-family:inherit;cursor:pointer}
 .hero .region{font-size:clamp(30px,5.5vw,54px);font-weight:900;letter-spacing:6px;text-shadow:0 3px 18px rgba(0,0,0,.65);line-height:1.25}
 .hero .region-en{font-size:clamp(13px,1.6vw,17px);letter-spacing:3px;opacity:.92;margin-top:6px;text-transform:uppercase;text-shadow:0 1px 8px rgba(0,0,0,.6)}
 .hero .sub{color:#fff;opacity:.95;font-size:14px;margin-top:14px;margin-bottom:0;text-shadow:0 1px 8px rgba(0,0,0,.7)}
-.hero .sub .pillh{display:inline-block;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:99px;padding:4px 14px;margin:3px;backdrop-filter:blur(4px)}
+.hero .sub .pillh{display:inline-block;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:99px;padding:3px 11px;margin:3px;font-size:12.5px;backdrop-filter:blur(4px)}
 nav{position:sticky;top:0;z-index:1100;background:rgba(255,255,255,.97);backdrop-filter:blur(8px);box-shadow:0 1px 8px rgba(0,0,0,.1);display:flex;overflow-x:auto;padding:0 10px}
 nav a{flex:0 0 auto;padding:13px 16px;font-size:14px;font-weight:600;color:#444;border-bottom:3px solid transparent;white-space:nowrap}
 nav a:hover{text-decoration:none;color:var(--accent)}
 nav a.active{color:var(--accent);border-bottom-color:var(--accent)}
 main{max-width:1250px;margin:0 auto;padding:26px 16px 60px}
-section{margin-bottom:56px;scroll-margin-top:66px}
-h2{font-size:24px;color:#173d2f;margin-bottom:4px}
-h2 .en{font-size:13px;color:var(--muted);font-weight:500;margin-left:8px}
-.sub{color:var(--muted);font-size:13.5px;margin-bottom:16px}
+section{margin-bottom:44px;scroll-margin-top:66px}
+h2{font-size:21px;color:#173d2f;margin-bottom:3px}
+h2 .en{font-size:12.5px;color:var(--muted);font-weight:500;margin-left:8px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:12px}
 
 details.alerts{background:#fff7ed;border:1px solid #fdba74;border-radius:var(--radius);padding:12px 18px;margin-bottom:26px}
 details.alerts summary{cursor:pointer;font-weight:700;color:#9a3412;font-size:14.5px}
@@ -49,7 +49,7 @@ details.alerts li{font-size:13.5px;margin:8px 0 0 18px}
 @media(max-width:900px){#map{height:400px}}
 .side{display:flex;flex-direction:column;gap:10px;max-height:560px}
 .citychips{display:flex;flex-wrap:wrap;gap:7px}
-.chip{border:1.5px solid #d8d4c8;background:#fff;border-radius:99px;padding:6px 13px;font-size:13px;font-weight:600;color:#444}
+.chip{border:1.5px solid #d8d4c8;background:#fff;border-radius:99px;padding:4px 11px;font-size:12.3px;font-weight:600;color:#444}
 .chip:hover{border-color:var(--accent);color:var(--accent)}
 .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .chip.excluded{opacity:.55;border-style:dashed}
@@ -63,7 +63,7 @@ details.alerts li{font-size:13.5px;margin:8px 0 0 18px}
 .cc-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .pill{background:#eef3f0;color:#33584a;border-radius:99px;padding:3px 11px;font-size:12.3px;white-space:nowrap}
 .pill.gold{background:#fdf3d7;color:#8a6508;font-weight:700}
-.pill.dist{background:#e8effc;color:#1e4bb8}
+.pill.dist{background:#eef3f0;color:#33584a}
 .pill.off{background:#f3f0ea;color:#999}
 .cc-body h4{font-size:13px;color:var(--muted);margin:10px 0 4px;font-weight:600}
 .cc-top{display:flex;flex-direction:column;gap:5px}
@@ -76,7 +76,7 @@ details.alerts li{font-size:13.5px;margin:8px 0 0 18px}
 .btn.sec{background:#eef0ec;color:#333}
 .btn.sec:hover{background:#e2e6e0}
 .btn.warn{background:#fdf0ea;color:#9a3412}
-.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:12px;color:var(--muted)}
 .legend .line{display:inline-block;width:28px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
 .pin{background:var(--accent);color:#fff;border-radius:10px;padding:2px 8px;font-size:12px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,.4);white-space:nowrap;border:2px solid #fff}
 .pin.dim{background:#a9b8b0}
@@ -110,22 +110,21 @@ details.alerts li{font-size:13.5px;margin:8px 0 0 18px}
 .m-body .note{background:#f0f7f4;border-left:4px solid var(--accent);border-radius:8px;padding:10px 13px;font-size:13.5px;margin-bottom:12px}
 .outfit li{margin:6px 0 0 18px;font-size:13.8px}
 
-/* Section 2 */
-.rank{display:flex;flex-direction:column;gap:12px}
-.rk{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;cursor:pointer}
-.rk .no{font-size:30px;font-weight:900;color:#d8d4c8;width:46px;text-align:center;flex:0 0 auto}
-.rk:nth-child(1) .no{color:var(--gold)}
-.rk:nth-child(2) .no{color:#9aa5b1}
-.rk:nth-child(3) .no{color:#b87748}
-.rk .info{flex:1;min-width:220px}
-.rk .info b{font-size:16.5px}
-.rk .info .en{color:var(--muted);font-size:12.5px;margin-left:6px}
-.rk .why{font-size:13px;color:#444;margin-top:4px}
-.rk .bar{height:8px;background:#eee9dd;border-radius:99px;margin-top:8px;overflow:hidden}
-.rk .bar i{display:block;height:100%;background:linear-gradient(90deg,#2e8b6e,#1a6b52);border-radius:99px}
-.rk .score{font-size:24px;font-weight:900;color:var(--accent);flex:0 0 auto}
-.rk .score small{display:block;font-size:11px;color:var(--muted);font-weight:500;text-align:center}
-.rk .inplan{font-size:11.5px;border-radius:99px;padding:2px 10px;background:#eef3f0;color:#33584a;font-weight:700}
+/* Section 2 —— 紧凑卡片栅格 */
+.rank{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.rk{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.rk:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.13)}
+.rk .rk-top{display:flex;align-items:baseline;gap:8px}
+.rk .no{font-size:14px;font-weight:900;color:#b8b2a4;flex:0 0 auto}
+.rk:nth-child(-n+3) .no{color:var(--gold)}
+.rk .rk-top b{font-size:15.5px;flex:1;min-width:0}
+.rk .score{font-size:19px;font-weight:900;color:var(--accent);flex:0 0 auto}
+.rk .en2{font-size:11.5px;color:var(--muted)}
+.rk .why{font-size:12.5px;color:#555;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rk .bar{height:5px;background:#eee9dd;border-radius:99px;overflow:hidden}
+.rk .bar i{display:block;height:100%;background:linear-gradient(90deg,#2e8b6e,#1a6b52)}
+.rk .rk-foot{display:flex;justify-content:space-between;align-items:center;margin-top:2px}
+.rk .inplan{font-size:11px;border-radius:99px;padding:2px 9px;background:#eef3f0;color:#33584a;font-weight:700}
 .rk .inplan.no{background:#f3f0ea;color:#999}
 
 /* Section 3 */
@@ -155,7 +154,9 @@ details.alerts li{font-size:13.5px;margin:8px 0 0 18px}
 .attpick label{display:flex;gap:8px;align-items:center;font-size:13px;padding:4px 0}
 .attpick label input{accent-color:var(--accent)}
 .attpick label .r{color:var(--gold);font-weight:700;margin-left:auto;white-space:nowrap;font-size:12px}
-.gen-btns{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap}
+.gen-btns{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;align-items:center}
+.gen-btns .btn.sec{padding:8px 11px;font-size:12.3px}
+.tipsline{padding:4px 6px 0;color:#8a887f;font-size:12.5px;line-height:1.7}
 
 .outp{min-width:0}
 .oday{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
@@ -168,7 +169,7 @@ details.alerts li{font-size:13.5px;margin:8px 0 0 18px}
 .oday-b{padding:10px 16px 13px;font-size:13.8px}
 .oit{display:flex;gap:10px;padding:5px 0;align-items:baseline}
 .oit .ic{flex:0 0 22px;text-align:center}
-.oit .r{color:var(--gold);font-weight:700;font-size:12px;white-space:nowrap}
+.oit .r{color:var(--gold);font-weight:700;font-size:11px;white-space:nowrap}
 .oit .warn{color:#b91c1c;font-size:12px;font-weight:700}
 .oleg{background:#e8effc;border-radius:9px;padding:8px 12px;margin:6px 0;font-size:13.3px}
 .ohotel{background:#fdf7ec;border-radius:9px;padding:8px 12px;margin-top:8px;font-size:13.3px}
@@ -231,13 +232,13 @@ td .en{font-size:11.5px;color:var(--muted);display:block}
 .searchbox{width:100%;max-width:420px;padding:9px 14px;border:1.5px solid #d8d4c8;border-radius:11px;font-size:14px;font-family:inherit;margin-bottom:12px;background:#fff}
 
 /* 三步使用引导 */
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:26px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
 @media(max-width:700px){.steps{grid-template-columns:1fr}}
-.steps a{display:flex;gap:12px;align-items:center;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;color:var(--ink);transition:transform .15s}
-.steps a:hover{text-decoration:none;transform:translateY(-3px);color:var(--accent)}
-.steps a b{font-size:26px;color:var(--accent);font-weight:900}
-.steps a span{font-size:14.5px;font-weight:700}
-.steps a small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.steps a{display:flex;gap:11px;align-items:center;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:11px 14px;color:var(--ink);transition:transform .15s}
+.steps a:hover{text-decoration:none;transform:translateY(-2px);color:var(--accent)}
+.steps a b{font-size:20px;color:var(--accent);font-weight:900}
+.steps a span{font-size:13.5px;font-weight:700}
+.steps a small{display:block;font-weight:400;font-size:11.5px;color:var(--muted)}
 
 /* 全局悬浮行程条 */
 #tripbar{position:fixed;left:0;right:0;bottom:0;z-index:1200;background:rgba(18,50,39,.97);backdrop-filter:blur(6px);color:#fff;display:flex;align-items:center;gap:12px;padding:9px 14px;box-shadow:0 -3px 14px rgba(0,0,0,.25)}
@@ -333,7 +334,7 @@ footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 16px 4
 <!-- ============ SECTION 1 ============ -->
 <section id="explore">
   <h2>🗺️ 探索地图 <span class="en">点击图钉或城市名 → 右侧生成卡片 → 展开完整攻略</span></h2>
-  <p class="sub">绿色图钉=已在行程中 · 灰色图钉=候选目的地（可一键加入）· 选中城市后地图显示其景点分布 · 路线随你的选择实时重绘</p>
+  <p class="sub">绿钉=已在行程 · 灰钉=候选可加入 · 点城市看景点分布，路线随选择实时重绘</p>
   <div class="explorer">
     <div>
       <div id="map"></div>
@@ -354,14 +355,14 @@ footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 16px 4
 <!-- ============ SECTION 2 ============ -->
 <section id="ranking">
   <h2>🏆 目的地排行 <span class="en">基于：朋友出行 · 快节奏 · 8月盛夏 · €100–180住宿档</span></h2>
-  <p class="sub">包含所有候选目的地（含未加入行程的）。推荐指数综合季节匹配、体验密度、口碑、性价比。点击任意一行跳到地图查看。</p>
+  <p class="sub">推荐指数综合季节、体验密度、口碑与性价比 · 点卡片跳地图，或直接「＋加入」</p>
   <div class="rank" id="ranklist"></div>
 </section>
 
 <!-- ============ SECTION 3 ============ -->
 <section id="planner">
   <h2>🛠️ 行程规划器 <span class="en">默认已载入系统推荐方案 · 改任何选项后点"生成行程"</span></h2>
-  <p class="sub">勾选城市（默认按地理走廊排序不走回头路，▲▼ 可手动调整途经顺序）→ 调晚数 → 勾景点 → 挑预算 → 生成。反向/未收录路段自动匹配车次或按距离估算。选择自动保存在本机。</p>
+  <p class="sub">🤖 自动排程：选城市调晚数一键生成 · 🎨 自由拖搭：按天丢景点自动配住宿 · 所有选择自动保存</p>
   <div class="plan-grid">
     <div class="controls">
       <h3>① 基本参数</h3>
@@ -396,10 +397,10 @@ footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 16px 4
       <div id="manualHint" style="display:none;font-size:13px;color:#33584a;margin-top:12px;background:#f0f7f4;border-radius:10px;padding:10px 13px">🎨 自由拖搭：直接在右侧天数卡片里「＋添加景点」搭行程——<b>每天最后一个点所在城市 = 当晚住宿</b>，城市变化时交通自动衔接。不需要分配城市和晚数。</div>
       <div class="gen-btns gen-sticky">
         <button class="btn pri" id="gen">⚡ 生成行程</button>
-        <button class="btn sec" id="reset">↺ 恢复系统推荐</button>
-        <button class="btn sec" id="copybtn">📋 复制为文本</button>
-        <button class="btn sec" id="sharebtn">🔗 分享链接</button>
-        <button class="btn sec" id="printbtn">🖨️ 打印/PDF</button>
+        <button class="btn sec" id="reset">↺ 重置</button>
+        <button class="btn sec" id="copybtn">📋 复制</button>
+        <button class="btn sec" id="sharebtn">🔗 分享</button>
+        <button class="btn sec" id="printbtn">🖨️ PDF</button>
       </div>
     </div>
     <div class="outp">
@@ -1332,12 +1333,12 @@ function renderRank(){
   const sorted=TRIP.cities.slice().sort((a,b)=>b.rec-a.rec);
   $("#ranklist").innerHTML=sorted.map((c,i)=>
     '<div class="rk" data-id="'+c.id+'">'+
-      '<div class="no">'+(i+1)+"</div>"+
-      '<div class="info"><b>'+c.flag+" "+esc(c.zh)+'</b><span class="en">'+esc(c.en)+" · ★"+c.r.toFixed(1)+" · 建议"+(c.nights===0?"半天":c.nights+"晚")+'</span> <span class="inplan'+(state.on[c.id]?"":" no")+'">'+(state.on[c.id]?"✓ 已在行程":"候选")+"</span>"+
+      '<div class="rk-top"><span class="no">#'+(i+1)+"</span><b>"+c.flag+" "+esc(c.zh)+'</b><span class="score">'+c.rec+"</span></div>"+
+      '<div class="en2">'+esc(c.en)+" · ★"+c.r.toFixed(1)+" · 建议"+(c.nights===0?"半天":c.nights+"晚")+"</div>"+
       '<div class="why">'+esc(TRIP.rankWhy[c.id]||c.bestFor)+"</div>"+
-      '<div class="bar"><i style="width:'+c.rec+'%"></i></div></div>'+
-      '<button class="btn '+(state.on[c.id]?"warn":"pri")+' rk-add" data-id="'+c.id+'">'+(state.on[c.id]?"− 移出":"＋ 加入行程")+"</button>"+
-      '<div class="score">'+c.rec+"<small>推荐指数</small></div>"+
+      '<div class="bar"><i style="width:'+c.rec+'%"></i></div>'+
+      '<div class="rk-foot"><span class="inplan'+(state.on[c.id]?"":" no")+'">'+(state.on[c.id]?"✓ 已在行程":"候选")+"</span>"+
+      '<button class="btn '+(state.on[c.id]?"warn":"pri")+' rk-add" data-id="'+c.id+'">'+(state.on[c.id]?"− 移出":"＋ 加入")+"</button></div>"+
     "</div>").join("");
   $$("#ranklist .rk").forEach(r=>r.addEventListener("click",()=>{
     location.hash="explore"; selectCity(r.dataset.id,true);
@@ -1464,7 +1465,7 @@ $("#gen").addEventListener("click",()=>{generate(); drawRoute();});
 let planText="";
 $("#copybtn").addEventListener("click",()=>{
   if(!planText){generate();}
-  const done=()=>{$("#copybtn").textContent="✅ 已复制"; setTimeout(()=>{$("#copybtn").textContent="📋 复制为文本";},2000);};
+  const done=()=>{$("#copybtn").textContent="✅ 已复制"; setTimeout(()=>{$("#copybtn").textContent="📋 复制";},2000);};
   try{
     navigator.clipboard.writeText(planText).then(done).catch(()=>{fallbackCopy(planText);done();});
   }catch(e){fallbackCopy(planText);done();}
@@ -1515,7 +1516,7 @@ function decodeShare(s){
 }
 $("#sharebtn").addEventListener("click",()=>{
   const url=location.href.split("#")[0]+"#s="+encodeShare();
-  const done=()=>{$("#sharebtn").textContent="✅ 链接已复制"; setTimeout(()=>{$("#sharebtn").textContent="🔗 分享链接";},2000);};
+  const done=()=>{$("#sharebtn").textContent="✅ 链接已复制"; setTimeout(()=>{$("#sharebtn").textContent="🔗 分享";},2000);};
   try{navigator.clipboard.writeText(url).then(done).catch(()=>{fallbackCopy(url);done();});}catch(e){fallbackCopy(url);done();}
 });
 
@@ -1843,7 +1844,7 @@ function renderManual(){
     html+="</div></div>";
     txt+="\n";
   });
-  html+='<div class="osum" style="font-size:13px;color:#555">💡 点「＋添加景点」从 18 个目的地里挑 · 每天最后一个点的城市=当晚住宿（自动配酒店）· 城市变化自动插入交通 · ⇅移动 ✕移除 · 随时可切回🤖自动排程（两边方案互不影响）</div>';
+  html+='<div class="tipsline">＋添加景点即搭行程 · 每天最后一个点=当晚住宿 · 城市变化自动插交通 · 两种模式方案互不影响</div>';
   $("#output").innerHTML=html;
   planText=txt;
 
@@ -2077,7 +2078,7 @@ function renderPlan(p){
     txt+="\n";
   });
   html+=checklistHtml(p);
-  html+='<div class="osum" style="font-size:13px;color:#555">🌅=建议赶早 🌙=夜间/傍晚体验 · ✋ 可直接<b>拖拽景点</b>到别的天或调整顺序（闭馆检查自动更新）· 出发前16天内每日行程自动显示实时天气 · 点击"地图↗"直达 Google Maps</div>';
+  html+='<div class="tipsline">🌅赶早 🌙夜间档 · 拖拽或⇅移动景点（闭馆检查自动更新）· 出发前16天内显示实时天气</div>';
   $("#output").innerHTML=html;
   planText=txt;
   attachPlanEvents(p);
