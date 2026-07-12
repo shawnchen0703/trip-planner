@@ -267,6 +267,20 @@ body{padding-bottom:56px}
 /* 排行榜加入按钮 */
 .rk .rk-add{flex:0 0 auto;font-size:12.5px;padding:7px 12px}
 
+/* 自由拖搭模式 */
+.modew{display:flex;gap:6px}
+.modew button{border:1.5px solid #d8d4c8;background:#fff;border-radius:10px;padding:8px 14px;font-size:13.5px;font-weight:700;color:#555}
+.modew button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.pk-cities{display:flex;flex-wrap:wrap;gap:6px;padding:12px 16px;background:#fff;border-bottom:1px solid #e5e2d8;max-height:130px;overflow-y:auto}
+.pk-row{display:flex;justify-content:space-between;gap:10px;align-items:center;background:#fff;border-radius:11px;box-shadow:var(--shadow);padding:10px 14px;margin-bottom:9px;cursor:pointer;font-size:13.8px}
+.pk-row:hover{outline:2px solid var(--accent)}
+.pk-row .meta2{color:var(--muted);font-size:12px;white-space:nowrap;text-align:right}
+.oit .rmv{border:1.5px solid #ead9d2;background:#fff;border-radius:8px;font-size:12px;padding:2px 8px;color:#b91c1c;flex:0 0 auto;line-height:1.4}
+.oit .rmv:hover{background:#fde8e8}
+.mday-add{width:100%;border:2px dashed #d8d4c8;background:#fbfaf6;border-radius:10px;padding:9px;font-size:13.5px;font-weight:700;color:var(--accent);margin-top:8px}
+.mday-add:hover{border-color:var(--accent);background:#f0f7f4}
+.sleepc{font-size:12px;background:#fdf3d7;color:#8a6508;border-radius:99px;padding:2px 10px;font-weight:700;white-space:nowrap;flex:0 0 auto}
+
 #totop{position:fixed;right:18px;bottom:70px;z-index:1500;width:44px;height:44px;border-radius:50%;border:none;background:var(--accent);color:#fff;font-size:19px;box-shadow:0 4px 14px rgba(0,0,0,.3);display:none}
 #totop.show{display:block}
 
@@ -306,7 +320,7 @@ footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 16px 4
 <main>
 
 <div class="steps">
-  <a href="#explore"><b>①</b><span>🗺️ 探索目的地<small>地图上看 17 个候选地的评分与亮点</small></span></a>
+  <a href="#explore"><b>①</b><span>🗺️ 探索目的地<small>地图上看 18 个候选地的评分与亮点</small></span></a>
   <a href="#ranking"><b>②</b><span>🏆 帮你取舍<small>排行榜一键把心动的加入行程</small></span></a>
   <a href="#planner"><b>③</b><span>🛠️ 生成行程<small>自动排程 · 拖拽微调 · 订票清单</small></span></a>
 </div>
@@ -368,11 +382,18 @@ footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 16px 4
         🛫 末日起飞 <input type="time" id="p-dep">
       </div>
       <div style="font-size:12px;color:var(--muted);margin-top:5px">留空 = 按整天排。填了会自动扣除出关取行李(1.5h)和赴机场提前量(3h)，压缩首/末日行程量</div>
+      <div class="ctl-row" style="margin-top:10px">
+        排程方式
+        <span class="modew"><button type="button" id="mode-auto" class="on">🤖 自动排程</button><button type="button" id="mode-manual">🎨 自由拖搭</button></span>
+      </div>
+      <div id="autoOnly">
       <h3>② 选择目的地 · 过夜数 · 顺序(▲▼)</h3>
       <div id="cityrows"></div>
       <div class="nights-status" id="nstatus"></div>
       <h3>③ 勾选想去的景点</h3>
       <div class="attpick" id="attpick"></div>
+      </div>
+      <div id="manualHint" style="display:none;font-size:13px;color:#33584a;margin-top:12px;background:#f0f7f4;border-radius:10px;padding:10px 13px">🎨 自由拖搭：直接在右侧天数卡片里「＋添加景点」搭行程——<b>每天最后一个点所在城市 = 当晚住宿</b>，城市变化时交通自动衔接。不需要分配城市和晚数。</div>
       <div class="gen-btns gen-sticky">
         <button class="btn pri" id="gen">⚡ 生成行程</button>
         <button class="btn sec" id="reset">↺ 恢复系统推荐</button>
@@ -419,6 +440,14 @@ footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 16px 4
   </div>
 </div>
 
+<div class="modal-bg" id="pickerbg">
+  <div class="modal" style="max-width:680px">
+    <div class="m-head"><div><b id="pk-title">添加景点</b><span class="en">点一下即加入当天 · 可连续添加多个 · 完成后关闭</span></div><button class="m-close" id="pk-close">✕</button></div>
+    <div class="pk-cities" id="pk-cities"></div>
+    <div class="m-body" id="pk-body"></div>
+  </div>
+</div>
+
 <button id="totop" title="回到顶部">↑</button>
 
 <div id="tripbar">
@@ -441,7 +470,7 @@ meta: {
   flags: "🇩🇪 🇦🇹 🇨🇿",
   region: "德国 · 奥地利 · 捷克",
   regionEn: "Germany · Austria · Czechia",
-  sub: ["🧭 交互式旅行规划器", "17 个目的地数据库", "当前行程 2026.8.1 – 8.9"],
+  sub: ["🧭 交互式旅行规划器", "18 个目的地数据库", "当前行程 2026.8.1 – 8.9"],
   heroImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f8/Schloss_Neuschwanstein_2013.jpg/1600px-Schloss_Neuschwanstein_2013.jpg",
   heroQuery: "Neuschwanstein Castle Bavaria alps 4k"
 },
@@ -561,6 +590,30 @@ cities: [
     {zh:"城墙小香肠屋", en:"Bratwursthäusle bei St. Sebald", r:4.4, p:"€10–18", summary:"炭火纽伦堡小香肠(Drei im Weggla三根夹面包)的正宗担当"},
     {zh:"金色邮号", en:"Goldenes Posthorn", r:4.3, p:"€18–30", summary:"1498年老店，丢勒常客；法兰肯烤肉和酸味炖牛肉"},
     {zh:"老城精酿坊", en:"Hausbrauerei Altstadthof", r:4.3, p:"€15–25", summary:"自酿红啤酒(Rotbier)——纽伦堡独有的酒种"}
+  ]
+},
+{ id:"nor", zh:"讷德林根", en:"Nördlingen", country:"德国", flag:"🇩🇪", c:[48.8517,10.4886],
+  r:4.5, rec:74, nights:0, tagline:"陨石坑里的圆形中世纪小城 · 《进击的巨人》既视感",
+  bestFor:"1500万年前陨石坑中央的完美圆形城墙小镇——罗滕堡→菲森的罗曼蒂克大道顺路半天",
+  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/N%C3%B6rdlingen_DanielBlickS%C3%BCden.jpg/960px-N%C3%B6rdlingen_DanielBlickS%C3%BCden.jpg",
+  weather:{t:"25°/13°", rain:"38%", note:"和罗滕堡同款南德夏季"},
+  outfit:["舒适步行鞋（登塔350级+环城墙）"],
+  transport:"小城10分钟横穿；火车经Donauwörth换乘；自驾停城墙外免费/低价停车场",
+  noBacktrack:"城门进→市集广场→登丹尼尔塔看圆城全景→下塔走一段带顶城墙→陨石坑博物馆→出城继续赶路",
+  atts:[
+    {zh:"丹尼尔塔(圣格奥尔格教堂)", en:"Daniel Tower (St. Georg's Church)", r:4.6, rec:5, h:1, price:"登塔€4.50", c:[48.8520,10.4890], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/N%C3%B6rdlingen_DanielBlickS%C3%BCden.jpg/960px-N%C3%B6rdlingen_DanielBlickS%C3%BCden.jpg", url:"https://www.noerdlingen.de/", desc:"90米高的'丹尼尔'塔，350级台阶登顶——俯瞰完美圆形的红屋顶小城和陨石坑边缘，教堂本身就是用陨石冲击岩(Suevite)砌的。《进击的巨人》城墙既视感的出处。", con:"楼梯窄且陡；塔顶守塔人收现金"},
+    {zh:"环城墙步道", en:"Town Wall Walk (Stadtmauer)", r:4.6, rec:4, h:1, price:"免费", c:[48.8500,10.4870], desc:"德国唯一可以完整走一圈的带顶城墙(2.7km)，从垛口看红屋顶，比罗滕堡的还完整且几乎没人。", con:"走全程约1小时，走一段精华也行"},
+    {zh:"里斯陨石坑博物馆", en:"Ries Crater Museum", r:4.5, rec:3, h:1, price:"€5", c:[48.8512,10.4862], url:"https://www.rieskrater-museum.de/", desc:"讲清楚脚下这个直径25km陨石坑的来龙去脉，镇馆之宝是NASA赠送的真月岩（阿波罗16号带回）。", con:"周一闭馆；展签以德文为主", closed:[1]},
+    {zh:"市集广场与木筋屋", en:"Marktplatz & Old Town", r:4.4, rec:2, h:1, price:"免费", c:[48.8517,10.4886], desc:"没被大规模旅游化的中世纪街巷，本地人生活气息比罗滕堡浓。", con:"店铺周日基本全关"}
+  ],
+  hotels:{
+    budget:[{n:"Hotel Altreuter", p:"€60–85", note:"丹尼尔塔正对面的糕点房客栈，位置无敌"}],
+    comfort:[{n:"Kaiserhof Hotel Sonne", p:"€95–135", note:"1477年老店，皇帝与歌德住过"}],
+    luxury:[]
+  },
+  food:[
+    {zh:"迈尔斯凯勒", en:"Meyers Keller", r:4.5, p:"€40–70", summary:"小城里藏着的精致法兰肯菜，需订位"},
+    {zh:"阿尔特罗伊特咖啡", en:"Café Altreuter", r:4.2, p:"€6–12", summary:"塔下百年糕点咖啡馆，登塔前后歇脚"}
   ]
 },
 { id:"fus", zh:"菲森·新天鹅堡", en:"Füssen & Neuschwanstein", country:"德国", flag:"🇩🇪", c:[47.5710,10.6980],
@@ -943,6 +996,9 @@ legs: {
   "vie>prg": {mode:"train", icon:"🚄", name:"Railjet 直达", dur:"~4h", durH:4, dist:"~330km", price:"早鸟€15–30（+订座€3–4.5）", freq:"每2小时约9班/天", book:"oebb.at / cd.cz 双平台比价", url:"https://tickets.oebb.at", note:"8月务必订座；RegioJet €15–24 为舒适备选", pre:{d:75,label:"oebb.at / cd.cz 买维也纳→布拉格早鸟票+订座"}},
   "ck>prg": {mode:"bus", icon:"🚌", name:"RegioJet/FlixBus 直达", dur:"~3h", durH:3, dist:"~180km", price:"€9–15", freq:"每1–2小时", book:"regiojet.com", url:"https://regiojet.com", note:"RegioJet含免费热饮，提前订有好座位"},
   "rot>nur": {mode:"drive", icon:"🚗", name:"自驾（火车需换乘）", dur:"~1h", durH:1, dist:"~80km", price:"油费~€9 / 火车€12–20", freq:"火车每小时", book:"bahn.de", url:"https://www.bahn.de"},
+  "rot>nor": {mode:"drive", icon:"🚗", name:"自驾·罗曼蒂克大道(经Dinkelsbühl)", dur:"~50min", durH:1, dist:"~55km", price:"油费~€6", freq:"—", book:"途经丁克尔斯比尔也值得停", url:"https://www.romantischestrasse.de/en/"},
+  "nor>fus": {mode:"drive", icon:"🚗", name:"自驾·罗曼蒂克大道", dur:"~1.5h", durH:1.5, dist:"~130km", price:"油费~€14", freq:"—", book:"沿途奥格斯堡可停", url:"https://www.romantischestrasse.de/en/"},
+  "nor>muc": {mode:"train", icon:"🚄", name:"火车(经Donauwörth换乘)", dur:"~2h", durH:2, dist:"~130km", price:"€25–35 / 拜仁州票", freq:"每小时", book:"bahn.de", url:"https://www.bahn.de"},
   "nur>muc": {mode:"train", icon:"🚄", name:"ICE 直达", dur:"1h05", durH:1.2, dist:"~170km", price:"€20–40", freq:"每30–60分钟", book:"bahn.de", url:"https://www.bahn.de"},
   "nur>fus": {mode:"train", icon:"🚄", name:"火车(经Augsburg换乘)", dur:"~3h", durH:3, dist:"~230km", price:"€30–45 / 拜仁州票", freq:"每小时", book:"bahn.de", url:"https://www.bahn.de"},
   "fus>gap": {mode:"drive", icon:"🚗", name:"自驾（或RVO巴士）", dur:"~1h", durH:1, dist:"~60km", price:"油费~€7", freq:"—", book:"沿阿尔卑斯山脚", url:"https://www.google.com/maps"},
@@ -993,7 +1049,8 @@ rankWhy: {
   dre:"战火重生的巴洛克老城+《西斯廷圣母》真迹；布拉格延长线的第一选择（2h15火车）",
   nur:"帝国荣光与二战审判的双重历史现场，配一把炭火小香肠——法兰克福→慕尼黑轴线顺路",
   kh:"人骨教堂的震撼一击全欧独一份；离布拉格1小时，半天刚好",
-  bts:"1小时解锁一个国家的首都；老城小而松弛——把期待调到'顺手集邮'就是惊喜"
+  bts:"1小时解锁一个国家的首都；老城小而松弛——把期待调到'顺手集邮'就是惊喜",
+  nor:"陨石坑中央的完美圆城+可走完整圈的带顶城墙，游客只有罗滕堡的零头——罗曼蒂克大道最被低估的一站"
 }
 };
 
@@ -1058,10 +1115,10 @@ function getLeg(a,b){
 }
 
 /* ---------- 状态（含旧存档迁移）---------- */
-const DEFAULTS={date:"2026-08-01",days:9,budget:"comfort",arrTime:"",depTime:"",
-  order:["fra","hd","rot","nur","fus","gap","muc","ibk","kon","sbg","lakes","vie","bts","ck","kh","prg","dre"],
-  on:{fra:true,hd:false,rot:false,nur:false,fus:false,gap:false,muc:true,ibk:false,kon:false,sbg:true,lakes:true,vie:true,bts:false,ck:false,kh:false,prg:true,dre:false},
-  nights:{fra:0,hd:0,rot:0,nur:0,fus:0,gap:0,muc:2,ibk:0,kon:0,sbg:0,lakes:3,vie:2,bts:0,ck:0,kh:0,prg:1,dre:0},
+const DEFAULTS={date:"2026-08-01",days:9,budget:"comfort",arrTime:"",depTime:"",mode:"auto",manualDays:[],
+  order:["fra","hd","rot","nur","nor","fus","gap","muc","ibk","kon","sbg","lakes","vie","bts","ck","kh","prg","dre"],
+  on:{fra:true,hd:false,rot:false,nur:false,nor:false,fus:false,gap:false,muc:true,ibk:false,kon:false,sbg:true,lakes:true,vie:true,bts:false,ck:false,kh:false,prg:true,dre:false},
+  nights:{fra:0,hd:0,rot:0,nur:0,nor:0,fus:0,gap:0,muc:2,ibk:0,kon:0,sbg:0,lakes:3,vie:2,bts:0,ck:0,kh:0,prg:1,dre:0},
   atts:null};
 function defaultAttSel(){
   const sel={};
@@ -1081,6 +1138,8 @@ function normalizeState(s){
   if(!s.budget) s.budget=DEFAULTS.budget;
   if(typeof s.arrTime!=="string") s.arrTime="";
   if(typeof s.depTime!=="string") s.depTime="";
+  if(s.mode!=="manual") s.mode="auto";
+  if(!Array.isArray(s.manualDays)) s.manualDays=[];
   const canon=TRIP.cities.map(c=>c.id);
   if(!Array.isArray(s.order)) s.order=canon.slice();
   else{
@@ -1291,6 +1350,14 @@ function renderRank(){
 /* ---------- 全局悬浮行程条 ---------- */
 function renderTripBar(){
   const el=document.getElementById("tb-route"); if(!el)return;
+  if(state.mode==="manual"){
+    const sleep2=[]; let last2=null;
+    (state.manualDays||[]).forEach(day=>{if(day&&day.length)last2=cityById(day[day.length-1].c); sleep2.push(last2);});
+    const seq2=[]; sleep2.forEach(c=>{if(c&&(!seq2.length||seq2[seq2.length-1].id!==c.id))seq2.push(c);});
+    el.innerHTML=(seq2.length?seq2.map(c=>c.flag+esc(c.zh)).join("<i>→</i>"):"自由拖搭：往右侧天数卡片里添加景点")+
+      '<span class="tb-meta">'+(state.days||9)+"天 · 🎨 自由拖搭</span>";
+    return;
+  }
   const sel=orderedCities().filter(c=>state.on[c.id]);
   const used=sel.reduce((s,c)=>s+state.nights[c.id],0);
   const need=(state.days||9)-1;
@@ -1359,8 +1426,14 @@ function renderControls(){
   $$("#attpick input").forEach(cb=>cb.addEventListener("change",()=>{
     state.atts[cb.dataset.c][cb.dataset.i]=cb.checked; saveState();
   }));
+  document.getElementById("mode-auto").classList.toggle("on",state.mode!=="manual");
+  document.getElementById("mode-manual").classList.toggle("on",state.mode==="manual");
+  document.getElementById("autoOnly").style.display=state.mode==="manual"?"none":"";
+  document.getElementById("manualHint").style.display=state.mode==="manual"?"":"none";
   renderTripBar();
 }
+$("#mode-auto").addEventListener("click",()=>{if(state.mode!=="auto"){state.mode="auto"; saveState(); renderControls(); generate();}});
+$("#mode-manual").addEventListener("click",()=>{if(state.mode!=="manual"){state.mode="manual"; saveState(); renderControls(); generate();}});
 $("#p-date").addEventListener("change",e=>{state.date=e.target.value; saveState(); renderTripBar();});
 $("#p-days").addEventListener("change",e=>{state.days=parseInt(e.target.value)||9; saveState(); renderControls();});
 $("#p-budget").addEventListener("change",e=>{state.budget=e.target.value; saveState(); renderTripBar();});
@@ -1408,7 +1481,7 @@ function encodeShare(){
     let mask=0; ct.atts.forEach((a,i)=>{if(state.atts[ct.id][i])mask|=(1<<i);});
     c[ct.id]=[state.on[ct.id]?1:0,state.nights[ct.id],mask];
   });
-  const json=JSON.stringify({d:state.date,y:state.days,b:state.budget,a:state.arrTime||"",t:state.depTime||"",o:state.order.join(","),c:c});
+  const json=JSON.stringify({d:state.date,y:state.days,b:state.budget,a:state.arrTime||"",t:state.depTime||"",o:state.order.join(","),M:state.mode,m:(state.manualDays||[]).map(day=>day.map(it=>it.c+"."+it.i).join("~")).join("|"),c:c});
   return btoa(unescape(encodeURIComponent(json))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 }
 function decodeShare(s){
@@ -1424,6 +1497,12 @@ function decodeShare(s){
       const ord=obj.o.split(",").filter(id=>canon.indexOf(id)>=0);
       canon.forEach(id=>{if(ord.indexOf(id)<0)ord.push(id);});
       ns.order=ord;
+    }
+    if(obj.M==="manual")ns.mode="manual";
+    if(typeof obj.m==="string"&&obj.m){
+      ns.manualDays=obj.m.split("|").map(s2=>s2?s2.split("~").map(tok=>{
+        const p2=tok.split("."); return {c:p2[0], i:parseInt(p2[1])||0};
+      }):[]);
     }
     TRIP.cities.forEach(ct=>{
       const v=obj.c&&obj.c[ct.id];
@@ -1565,6 +1644,7 @@ function computePlan(){
 }
 
 function generate(){
+  if(state.mode==="manual"){renderManual();return;}
   const p=computePlan();
   if(p.err){$("#output").innerHTML='<div class="placeholder">'+esc(p.err)+"</div>"; planText=""; lastPlan=null; return;}
   lastPlan=p;
@@ -1678,6 +1758,160 @@ function showDayOnMap(p,di){
   if(mapEl&&mapEl.scrollIntoView)mapEl.scrollIntoView({behavior:"smooth",block:"center"});
 }
 
+/* ================= 🎨 自由拖搭模式 ================= */
+function manualEnsure(){
+  const n=Math.max(2,parseInt(state.days)||9);
+  if(!Array.isArray(state.manualDays))state.manualDays=[];
+  state.manualDays=state.manualDays.map(day=>(day||[]).filter(it=>{
+    const ct=cityById(it.c); return ct&&ct.atts[it.i];
+  }));
+  while(state.manualDays.length<n)state.manualDays.push([]);
+  if(state.manualDays.length>n)state.manualDays.length=n;
+}
+
+function renderManual(){
+  manualEnsure();
+  const startParts=(state.date||"2026-08-01").split("-");
+  const start=new Date(parseInt(startParts[0]),parseInt(startParts[1])-1,parseInt(startParts[2]));
+  const budget=state.budget;
+  const days=state.manualDays;
+  const arrH=timeToH(state.arrTime), depH=timeToH(state.depTime);
+  const tnow=new Date(); tnow.setHours(0,0,0,0);
+
+  /* 每天的睡城 = 当天最后一个点的城市；空天延续前一晚 */
+  const sleep=[]; let lastSleep=null;
+  days.forEach(day=>{
+    if(day.length)lastSleep=cityById(day[day.length-1].c);
+    sleep.push(lastSleep);
+  });
+  const routeSeq=[];
+  sleep.forEach(c=>{if(c&&(!routeSeq.length||routeSeq[routeSeq.length-1].id!==c.id))routeSeq.push(c);});
+  const nightsBy={};
+  sleep.slice(0,Math.max(0,days.length-1)).forEach(c=>{if(c)nightsBy[c.id]=(nightsBy[c.id]||0)+1;});
+  const usedN=Math.max(0,days.length-1);
+  const TIER_MID={budget:90,comfort:145,luxury:330};
+  const estLow=Math.round(usedN*TIER_MID[budget]/2+days.length*45+90);
+  const estHigh=Math.round(usedN*TIER_MID[budget]/2+days.length*65+200);
+
+  let html='<div class="osum"><b class="big">🎨 自由拖搭 · '+days.length+"天"+usedN+"晚 · "+esc(TIER_LABEL[budget])+'</b>'+
+    '<div class="tags">'+(routeSeq.length?routeSeq.map(c=>'<span class="pill">'+c.flag+esc(c.zh)+(nightsBy[c.id]?" "+nightsBy[c.id]+"晚":"")+"</span>").join(""):'<span class="pill off">往下面的日子里添加景点，路线自动出现</span>')+"</div>"+
+    '<div style="margin-top:9px;font-size:13.5px">💶 人均粗估：<b class="price">€'+estLow+" – €"+estHigh+'</b>　·　每天最后一个景点所在城市 = 当晚住宿</div></div>';
+
+  let txt="🎨 自由拖搭行程 · "+days.length+"天 · 出发"+state.date+"\n\n";
+  const mDayList=[];
+
+  days.forEach((day,i)=>{
+    const date=addDays(start,i), wd=date.getDay();
+    const dd=new Date(date.getTime()); dd.setHours(0,0,0,0);
+    const isToday=dd.getTime()===tnow.getTime();
+    const sc=sleep[i];
+    mDayList.push({date:date, city:sc||((day[0]&&cityById(day[0].c))||null)});
+    const hrs=day.reduce((s,it)=>s+cityById(it.c).atts[it.i].h,0);
+    html+='<div class="oday'+(isToday?" today":"")+'" data-day="'+i+'"><div class="oday-h">'+
+      '<div class="d"><b>D'+(i+1)+"</b><small>"+fmtDate(date)+" 周"+WD[wd]+"</small>"+(isToday?'<span class="tdy">今天</span>':"")+"</div>"+
+      '<div class="ttl">'+(day.length?day.length+"个点 · 约"+Math.round(hrs*10)/10+"h游览"+(hrs>9?' <span class="warn">⚠️偏满</span>':""):"空闲日")+'<small>'+(sc?"今晚住 "+esc(sc.zh):"住宿待定——先加个景点")+'<span class="wx" id="wx-'+i+'"></span></small></div>'+
+      (sc&&i<days.length-1?'<span class="sleepc">🛏️ '+esc(sc.zh)+"</span>":"")+"</div>"+
+      '<div class="oday-b">';
+    txt+="D"+(i+1)+" "+fmtDate(date)+" 周"+WD[wd]+(sc?"　宿"+sc.zh:"")+"\n";
+    if(i===0&&arrH!==null){html+='<div class="oleg">🛬 <b>航班 '+esc(state.arrTime)+' 抵达</b> · 约 '+hToTime(arrH+1.5)+" 可动身</div>"; txt+="  🛬 "+state.arrTime+" 抵达\n";}
+    let prevC=i>0?sleep[i-1]:null;
+    day.forEach((it,j)=>{
+      const ct=cityById(it.c), a=ct.atts[it.i];
+      if(prevC&&prevC.id!==ct.id){
+        const lg=getLeg(prevC,ct);
+        html+='<div class="oleg">'+lg.icon+" "+esc(prevC.zh)+" → "+esc(ct.zh)+"："+esc(lg.name)+" · "+esc(lg.dur)+" · "+esc(lg.price)+' · <a href="'+lg.url+'" target="_blank">'+esc(lg.book)+" ↗</a></div>";
+        txt+="  "+lg.icon+" "+prevC.zh+"→"+ct.zh+"（"+lg.dur+"）\n";
+      }
+      prevC=ct;
+      const closed=a.closed&&a.closed.indexOf(wd)>=0;
+      html+='<div class="oit"><span class="ic">'+(j+1)+'</span><span><b>'+esc(a.zh)+'</b> <small class="enin">'+esc(a.en)+"</small>"+
+        (closed?' <span class="warn">⚠️当天闭馆(周'+WD[wd]+')</span>':"")+
+        ' · <a href="'+gm(a.en+" "+ct.en)+'" target="_blank" style="font-size:12px">地图↗</a></span>'+
+        '<span class="r">★'+a.r+" · "+a.h+"h</span>"+
+        '<button class="mv" data-d="'+i+'" data-j="'+j+'" title="移到别的天">⇅</button>'+
+        '<button class="rmv" data-d="'+i+'" data-j="'+j+'" title="移除">✕</button></div>';
+      txt+="  "+(j+1)+". "+a.zh+" "+a.en+"（★"+a.r+"，"+a.h+"h）"+(closed?"【当天闭馆!】":"")+"\n";
+    });
+    if(!day.length){html+='<div class="oit"><span class="ic">🌿</span><span>空闲日'+(sc?" —— 住宿延续 "+esc(sc.zh):"")+"</span></div>";}
+    if(i===days.length-1&&depH!==null){html+='<div class="oleg">🛫 <b>航班 '+esc(state.depTime)+' 起飞</b> · '+hToTime(Math.max(0,depH-3))+" 前出发去机场</div>"; txt+="  🛫 "+state.depTime+" 起飞\n";}
+    if(sc&&i<days.length-1){
+      const hs=(sc.hotels[budget]||[]);
+      if(hs.length){html+='<div class="ohotel">🛏️ <a href="'+gm(hs[0].n+" "+sc.en+" hotel")+'" target="_blank"><b>'+esc(hs[0].n)+'</b> ↗</a> · <span class="price">'+esc(hs[0].p)+"</span> · "+esc(hs[0].note)+"</div>";
+        txt+="  🛏️ "+hs[0].n+"（"+hs[0].p+"）\n";}
+    }
+    html+='<button class="mday-add" data-day="'+i+'">＋ 往这一天添加景点</button>';
+    html+="</div></div>";
+    txt+="\n";
+  });
+  html+='<div class="osum" style="font-size:13px;color:#555">💡 点「＋添加景点」从 18 个目的地里挑 · 每天最后一个点的城市=当晚住宿（自动配酒店）· 城市变化自动插入交通 · ⇅移动 ✕移除 · 随时可切回🤖自动排程（两边方案互不影响）</div>';
+  $("#output").innerHTML=html;
+  planText=txt;
+
+  $$("#output .mday-add").forEach(b=>b.addEventListener("click",()=>openPicker(parseInt(b.dataset.day))));
+  $$("#output .rmv").forEach(b=>b.addEventListener("click",e=>{
+    e.stopPropagation();
+    state.manualDays[parseInt(b.dataset.d)].splice(parseInt(b.dataset.j),1);
+    saveState(); renderManual(); renderTripBar();
+  }));
+  let pendingM=null;
+  function clearPM(){
+    pendingM=null;
+    $$("#output .oit.moving").forEach(x=>x.classList.remove("moving"));
+    const mh=document.getElementById("movehint"); if(mh)mh.classList.remove("show");
+  }
+  $$("#output .mv").forEach(b=>b.addEventListener("click",e=>{
+    e.stopPropagation();
+    const cur={d:parseInt(b.dataset.d),j:parseInt(b.dataset.j)};
+    if(pendingM&&pendingM.d===cur.d&&pendingM.j===cur.j){clearPM();return;}
+    clearPM(); pendingM=cur;
+    const row=b.closest(".oit"); if(row)row.classList.add("moving");
+    const mh=document.getElementById("movehint");
+    if(mh){mh.textContent="✋ 已选中——点击目标那一天完成移动 · 再点 ⇅ 取消"; mh.classList.add("show");}
+  }));
+  $$("#output .oday").forEach(dayEl=>dayEl.addEventListener("click",e=>{
+    if(!pendingM)return;
+    if(e.target.closest("a")||e.target.closest(".mv")||e.target.closest(".rmv")||e.target.closest(".mday-add"))return;
+    const dst=parseInt(dayEl.dataset.day);
+    const it=state.manualDays[pendingM.d].splice(pendingM.j,1)[0];
+    clearPM();
+    if(it)state.manualDays[dst].push(it);
+    saveState(); renderManual(); renderTripBar();
+  }));
+  fillWeather({dayList:mDayList});
+  renderTripBar();
+}
+
+/* 景点选择器 */
+let pickerDay=0, pickerCity=null;
+function openPicker(d){
+  pickerDay=d;
+  const day=state.manualDays[d];
+  if(day&&day.length)pickerCity=day[day.length-1].c;
+  else if(!pickerCity){
+    const firstOn=orderedCities().filter(c=>state.on[c.id])[0];
+    pickerCity=(firstOn||TRIP.cities[0]).id;
+  }
+  renderPicker();
+  $("#pickerbg").classList.add("open");
+  document.body.style.overflow="hidden";
+}
+function renderPicker(){
+  $("#pk-title").textContent="添加景点 → D"+(pickerDay+1);
+  $("#pk-cities").innerHTML=orderedCities().map(c=>'<button class="chip'+(pickerCity===c.id?" on":"")+'" data-id="'+c.id+'">'+c.flag+" "+c.zh+"</button>").join("");
+  $$("#pk-cities .chip").forEach(b=>b.addEventListener("click",()=>{pickerCity=b.dataset.id; renderPicker();}));
+  const c=cityById(pickerCity);
+  const used={};
+  state.manualDays.forEach(day=>day.forEach(it=>{used[it.c+"."+it.i]=true;}));
+  $("#pk-body").innerHTML=c.atts.map((a,i)=>
+    '<div class="pk-row" data-i="'+i+'"><span>'+(used[c.id+"."+i]?"✅ ":"")+"<b>"+esc(a.zh)+'</b> <small class="enin">'+esc(a.en)+'</small><br><small class="subnote">'+esc(a.desc.slice(0,42))+'…</small></span><span class="meta2">★'+a.r+" · "+a.h+"h<br>"+esc(a.price)+"</span></div>").join("");
+  $$("#pk-body .pk-row").forEach(r=>r.addEventListener("click",()=>{
+    state.manualDays[pickerDay].push({c:pickerCity,i:parseInt(r.dataset.i)});
+    saveState(); renderManual(); renderPicker();
+  }));
+}
+$("#pk-close").addEventListener("click",()=>{$("#pickerbg").classList.remove("open");document.body.style.overflow="";});
+$("#pickerbg").addEventListener("click",e=>{if(e.target===$("#pickerbg")){$("#pickerbg").classList.remove("open");document.body.style.overflow="";}});
+
 /* ----- 订票倒计时清单 ----- */
 function loadDone(){try{return JSON.parse(localStorage.getItem("bookDone"))||{}}catch(e){return{}}}
 function saveDone(d){try{localStorage.setItem("bookDone",JSON.stringify(d))}catch(e){}}
@@ -1737,12 +1971,12 @@ function fetchWx(city){
 }
 function fillWeather(p){
   const uniq={};
-  p.dayList.forEach(d=>{uniq[d.city.id]=d.city;});
+  p.dayList.forEach(d=>{if(d.city)uniq[d.city.id]=d.city;});
   Object.keys(uniq).forEach(id=>{
     fetchWx(uniq[id]).then(daily=>{
       if(!daily||!daily.time)return;
       p.dayList.forEach((d,i)=>{
-        if(d.city.id!==id)return;
+        if(!d.city||d.city.id!==id)return;
         const k=daily.time.indexOf(isoDate(d.date));
         if(k<0)return;
         const el=document.getElementById("wx-"+i);
