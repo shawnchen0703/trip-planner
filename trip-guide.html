@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>德奥捷9日游攻略 · 2026.8.1–8.9 | Frankfurt → Munich → Salzkammergut → Vienna → Prague</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root{
+    --bg:#f7f5f0; --card:#ffffff; --ink:#2b2b2b; --muted:#6b6b6b;
+    --accent:#1a6b52; --accent2:#c0512f; --gold:#b8860b;
+    --train:#2563eb; --car:#d97706;
+    --warn-bg:#fff7ed; --warn-border:#fdba74;
+    --shadow:0 2px 10px rgba(0,0,0,.08);
+    --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.65}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* ===== Hero ===== */
+  .hero{background:linear-gradient(135deg,#123f31 0%,#1a6b52 55%,#2e8b6e 100%);color:#fff;padding:52px 20px 110px;text-align:center;position:relative}
+  .hero h1{font-size:clamp(26px,4.5vw,42px);letter-spacing:2px}
+  .hero .sub{margin-top:10px;font-size:clamp(14px,2vw,18px);opacity:.92}
+  .hero .route{margin-top:18px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;font-size:14px}
+  .hero .route span{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);padding:5px 13px;border-radius:99px}
+  .hero .route .arrow{background:none;border:none;opacity:.7;padding:5px 0}
+  .hero .stats{margin-top:22px;display:flex;justify-content:center;gap:30px;flex-wrap:wrap;font-size:13px;opacity:.9}
+  .hero .stats b{display:block;font-size:20px}
+
+  /* ===== Nav ===== */
+  nav{position:sticky;top:0;z-index:1000;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);box-shadow:0 1px 8px rgba(0,0,0,.1);display:flex;overflow-x:auto;justify-content:flex-start;gap:2px;padding:0 10px}
+  nav a{flex:0 0 auto;padding:13px 15px;font-size:14px;font-weight:600;color:#444;border-bottom:3px solid transparent;white-space:nowrap}
+  nav a:hover{text-decoration:none;color:var(--accent)}
+  nav a.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+  main{max-width:1150px;margin:-70px auto 60px;padding:0 16px}
+  section{margin-bottom:54px;scroll-margin-top:70px}
+  h2{font-size:26px;margin-bottom:6px;color:#173d2f;display:flex;align-items:center;gap:10px}
+  h2 .en{font-size:14px;color:var(--muted);font-weight:500}
+  .section-sub{color:var(--muted);font-size:14px;margin-bottom:18px}
+  h3{font-size:19px;margin:26px 0 12px;color:#1a4a3a}
+
+  .panel{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px}
+
+  /* ===== Alerts ===== */
+  .alerts{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
+  .alert{background:var(--warn-bg);border:1px solid var(--warn-border);border-left:5px solid var(--accent2);border-radius:10px;padding:13px 15px;font-size:14px}
+  .alert b{color:var(--accent2)}
+
+  /* ===== Map ===== */
+  #map{height:480px;border-radius:var(--radius);box-shadow:var(--shadow);z-index:1}
+  .legend{display:flex;gap:22px;flex-wrap:wrap;margin-top:10px;font-size:13px;color:var(--muted)}
+  .legend .line{display:inline-block;width:34px;height:4px;border-radius:2px;vertical-align:middle;margin-right:6px}
+
+  /* ===== Timeline ===== */
+  .day{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+  .day-head{display:flex;align-items:center;gap:14px;padding:15px 20px;cursor:pointer;user-select:none}
+  .day-head:hover{background:#fafaf7}
+  .day-date{background:var(--accent);color:#fff;border-radius:10px;padding:6px 12px;text-align:center;min-width:74px}
+  .day-date b{display:block;font-size:17px}
+  .day-date small{font-size:11px;opacity:.85}
+  .day-title{flex:1}
+  .day-title b{font-size:16px}
+  .day-title .stay{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+  .day-toggle{font-size:20px;color:var(--muted);transition:transform .25s}
+  .day.open .day-toggle{transform:rotate(90deg)}
+  .day-body{display:none;padding:4px 20px 18px;border-top:1px dashed #e5e2da}
+  .day.open .day-body{display:block}
+  .step{display:flex;gap:12px;padding:8px 0;font-size:14.5px}
+  .step .t{flex:0 0 58px;font-weight:700;color:var(--accent2);font-variant-numeric:tabular-nums}
+  .tip{background:#f0f7f4;border-left:4px solid var(--accent);border-radius:8px;padding:10px 14px;margin-top:10px;font-size:13.5px}
+
+  /* ===== Cards ===== */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;transition:transform .18s,box-shadow .18s}
+  .card:hover{transform:translateY(-4px);box-shadow:0 8px 22px rgba(0,0,0,.13)}
+  .card img{width:100%;height:190px;object-fit:cover;background:#dde5e0}
+  .card .noimg{width:100%;height:110px;background:linear-gradient(120deg,#dfe8e3,#cfdcd4);display:flex;align-items:center;justify-content:center;color:#5f7a6e;font-size:32px}
+  .card-body{padding:16px 17px 15px;display:flex;flex-direction:column;flex:1}
+  .card-name{font-size:16.5px;font-weight:700}
+  .card-name .en{display:block;font-size:12.5px;color:var(--muted);font-weight:500;margin-top:1px}
+  .badges{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0}
+  .badge{font-size:12px;padding:2px 9px;border-radius:99px;background:#eef3f0;color:#33584a;white-space:nowrap}
+  .badge.rate{background:#fdf3d7;color:#8a6508;font-weight:700}
+  .badge.closed{background:#fde8e8;color:#b91c1c;font-weight:700}
+  .card-desc{font-size:13.8px;color:#444;flex:1}
+  .card-con{font-size:12.8px;color:#9a4a22;background:#fdf3ec;border-radius:8px;padding:7px 10px;margin-top:10px}
+  .card-link{margin-top:10px;font-size:13px;font-weight:600}
+
+  /* ===== Tables ===== */
+  table{width:100%;border-collapse:collapse;font-size:13.8px;background:var(--card)}
+  .tblwrap{overflow-x:auto;border-radius:var(--radius);box-shadow:var(--shadow)}
+  th{background:#173d2f;color:#fff;text-align:left;padding:11px 13px;font-size:13px;white-space:nowrap}
+  td{padding:11px 13px;border-bottom:1px solid #eee9df;vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:#fbfaf6}
+  td b.zh{display:block}
+  td .en{font-size:12px;color:var(--muted)}
+  .price{color:var(--accent2);font-weight:700;white-space:nowrap}
+
+  /* ===== City header ===== */
+  .city-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+  .city-days{font-size:13px;background:var(--accent2);color:#fff;padding:3px 12px;border-radius:99px;font-weight:600}
+
+  /* ===== Weather / packing ===== */
+  .wgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+  .wcard{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;text-align:center}
+  .wcard .temp{font-size:26px;font-weight:800;color:var(--accent);margin:6px 0}
+  .wcard .rain{font-size:13px;color:var(--muted)}
+  .wcard .note{font-size:13px;margin-top:8px;color:#444}
+  .packlist{columns:2;column-gap:30px;font-size:14.5px}
+  .packlist label{display:flex;gap:9px;padding:7px 0;break-inside:avoid;cursor:pointer;align-items:flex-start}
+  .packlist input{margin-top:4px;accent-color:var(--accent)}
+  .packlist label.done span{text-decoration:line-through;color:#aaa}
+  @media(max-width:640px){.packlist{columns:1}}
+
+  footer{text-align:center;color:var(--muted);font-size:12.5px;padding:30px 16px 40px}
+  .searchtip{font-size:12.5px;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>德国 · 奥地利 · 捷克 9日环线</h1>
+  <div class="sub">2026年8月1日 — 8月9日 · 火车 + 湖区自驾 · 法兰克福进 / 布拉格出</div>
+  <div class="route">
+    <span>✈️ 法兰克福 Frankfurt</span><span class="arrow">→</span>
+    <span>🍺 慕尼黑 Munich ×2晚</span><span class="arrow">→</span>
+    <span>🎻 萨尔茨堡 Salzburg</span><span class="arrow">→</span>
+    <span>🏔️ 湖区 Salzkammergut ×3晚</span><span class="arrow">→</span>
+    <span>🏛️ 维也纳 Vienna ×2晚</span><span class="arrow">→</span>
+    <span>🌉 布拉格 Prague ×1晚 ✈️</span>
+  </div>
+  <div class="stats">
+    <div><b>8晚</b>4个住宿基地</div>
+    <div><b>~1,470 km</b>火车 1,030 + 自驾 440</div>
+    <div><b>€1,100–1,860</b>人均预算(不含机票)</div>
+    <div><b>21–30°C</b>八月天气·湖水可游泳</div>
+  </div>
+</div>
+
+<nav id="nav">
+  <a href="#alerts">⚠️ 必读</a>
+  <a href="#map-sec">🗺️ 路线地图</a>
+  <a href="#itinerary">📅 每日行程</a>
+  <a href="#munich">慕尼黑</a>
+  <a href="#lakes">萨尔茨堡·湖区</a>
+  <a href="#vienna">维也纳</a>
+  <a href="#prague">布拉格</a>
+  <a href="#transport">🚄 交通·租车</a>
+  <a href="#budget">💶 预算</a>
+  <a href="#weather">🌤️ 天气·打包</a>
+</nav>
+
+<main>
+
+<!-- ================= ALERTS ================= -->
+<section id="alerts">
+  <h2>⚠️ 出发前必读 <span class="en">Critical Info · 2026年实况核实</span></h2>
+  <div class="alerts">
+    <div class="alert"><b>哈尔施塔特盐矿关闭中！</b> Salzwelten盐矿+Skywalk观景台因改造<b>关闭至2026年9月</b>，8月去不了。替代：达赫施泰因冰洞+五指观景台、高萨湖。<a href="https://www.salzwelten.at/en/hallstatt/prices-opening-hours" target="_blank">官方公告 ↗</a></div>
+    <div class="alert"><b>两个"星期几"陷阱：</b>8/2(周日)慕尼黑谷物市场关门→必须排在8/1；8/8(周六)布拉格犹太博物馆闭馆→犹太区排在8/9(周日)。</div>
+    <div class="alert"><b>美泉宫必须提前订票：</b>8月现场排队1小时+且当日票常售罄，<b>提前2–4周</b>在官网订Grand Tour时段票。<a href="https://www.schoenbrunn.at/en/tickets-and-prices/all-tickets-tours" target="_blank">schoenbrunn.at ↗</a></div>
+    <div class="alert"><b>维也纳歌剧院8月暑休</b>，无歌剧演出。替代：€15内部导览团 + 市政厅广场<b>免费</b>露天音乐电影节(每晚)。萨尔茨堡Kapitelplatz广场也有音乐节<b>免费歌剧转播大屏</b>。</div>
+    <div class="alert"><b>租车驾照：</b>加拿大驾照需配<b>IDP国际驾驶许可</b>(出发前CAA办理,约$25)；中国驾照无法办IDP,需公证德/英文翻译件且部分租车行不收——建议以持加拿大驾照者为主驾,提前邮件确认。</div>
+    <div class="alert"><b>哈尔施塔特停车先到先得：</b>不可预订,8月<b>务必8:30前抵达</b>(P1约7:00开闸),10点后常全场满封路。1h €5 / 4h €10 / 全天 €18。</div>
+    <div class="alert"><b>维也纳2026年取消48/72h交通票</b>→ 买两张24小时票(App电子票 €9.70/张)。到维也纳<b>当天立即还车</b>,市中心停车€25–50/天。</div>
+    <div class="alert"><b>火车早鸟票越早越便宜：</b>维也纳→布拉格 Railjet 特价<b>€15起</b>(提前2–3个月放票,建议加€3–4.5订座)；法兰克福机场→慕尼黑 ICE 特价€20起。绑定车次不可退改。</div>
+    <div class="alert"><b>布拉格避坑：</b>老城广场正面露天餐厅价格2–3倍；<b>绝不在街头黄色换汇点换钱</b>(汇率被砍20%+)——用ATM取克朗或刷卡,拒绝ATM上的"按欧元计价"(DCC)选项。</div>
+    <div class="alert"><b>萨尔茨堡音乐节 7/17–8/30</b> 与行程完全重叠：老城氛围极佳,但湖区/萨尔茨堡酒店涨价30–50%,<b>务必尽早订房</b>。</div>
+  </div>
+</section>
+
+<!-- ================= MAP ================= -->
+<section id="map-sec">
+  <h2>🗺️ 路线地图 <span class="en">Route Map</span></h2>
+  <p class="section-sub">点击图钉查看每站停留安排 · 蓝色=火车段 · 橙色=自驾段</p>
+  <div id="map"></div>
+  <div class="legend">
+    <span><i class="line" style="background:var(--train)"></i>火车 Train（法兰克福→慕尼黑→萨尔茨堡；维也纳→布拉格）</span>
+    <span><i class="line" style="background:var(--car)"></i>自驾 Drive（萨尔茨堡→湖区→梅尔克→维也纳，约440km）</span>
+  </div>
+</section>
+
+<!-- ================= ITINERARY ================= -->
+<section id="itinerary">
+  <h2>📅 每日行程 <span class="en">Day-by-Day Itinerary（点击展开）</span></h2>
+  <p class="section-sub">节奏为"能走能赶"版本；每天的取舍项都标了出来，现场可灵活砍。</p>
+
+  <div class="day open">
+    <div class="day-head"><div class="day-date"><b>8/1</b><small>周六</small></div><div class="day-title"><b>落地法兰克福 → 火车直奔慕尼黑</b><span class="stay">🛏️ 慕尼黑 · Motel One Hauptbahnhof 或同级</span></div><div class="day-toggle">▸</div></div>
+    <div class="day-body">
+      <div class="step"><div class="t">上午</div><div>FRA落地，出关后步行10–15分钟到机场长途火车站（Frankfurt Flughafen Fernbahnhof），乘直达ICE→慕尼黑中央车站（3h15–3h50，特价票€20–40，<a href="https://www.bahn.de" target="_blank">bahn.de</a>提前订；航班若可能延误建议买灵活票或预留2h缓冲）</div></div>
+      <div class="step"><div class="t">下午</div><div>酒店放行李 → <b>玛丽恩广场 Marienplatz</b>（新市政厅）→ <b>谷物市场 Viktualienmarkt</b>（⚠️周日关门，只有今天能逛！站着吃Obazda奶酪+碱水结）→ <b>圣母教堂 Frauenkirche</b>登南塔看阿尔卑斯（€7.50）</div></div>
+      <div class="step"><div class="t">晚上</div><div><b>皇家啤酒馆 Hofbräuhaus</b> 感受铜管乐队+一升啤酒气氛（菜一般，主打气氛）；或直接去本地人推荐的 <b>Augustiner Bräustuben</b> 吃全城最好的烤猪肘（人均€15–25）</div></div>
+      <div class="tip">💡 倒时差日，别排太满。ICE车票绑定车次，落地前先确认航班准点。</div>
+    </div>
+  </div>
+
+  <div class="day">
+    <div class="day-head"><div class="day-date"><b>8/2</b><small>周日</small></div><div class="day-title"><b>慕尼黑全天：王宫 + 英国花园 + 啤酒花园</b><span class="stay">🛏️ 慕尼黑（同上）</span></div><div class="day-toggle">▸</div></div>
+    <div class="day-body">
+      <div class="step"><div class="t">上午</div><div><b>慕尼黑王宫 Residenz</b>（9:00开门，走精华路线90分钟：古董厅+祖先画廊；联票€15含珍宝馆）</div></div>
+      <div class="step"><div class="t">中午</div><div>老城午餐：<b>Schneider Bräuhaus</b> 白香肠传统上只卖到中午，想吃要赶早</div></div>
+      <div class="step"><div class="t">下午</div><div><b>英国花园 Englischer Garten</b>：看Eisbach河<b>城市冲浪</b>（免费、慕尼黑独一份）→ 溜达到<b>中国塔啤酒花园</b>喝一杯。体力充沛加选：<b>宁芬堡宫</b>(Tram 17, 40min) 或 <b>BMW世界</b>(免费, U3)</div></div>
+      <div class="step"><div class="t">晚上</div><div><b>Augustiner-Keller</b> 啤酒花园晚餐（5000座、1328年老厂木桶直出，人均€20–35）；回酒店早点休息，明天进山</div></div>
+      <div class="tip">💡 周日商店关门，但博物馆/王宫/啤酒馆正常。买两人团体天票(€18.60,最多5人)比单人票划算。</div>
+    </div>
+  </div>
+
+  <div class="day">
+    <div class="day-head"><div class="day-date"><b>8/3</b><small>周一</small></div><div class="day-title"><b>火车→萨尔茨堡取车 · 老城半天 · 傍晚进湖区</b><span class="stay">🛏️ 圣沃尔夫冈 St. Wolfgang 或巴德伊舍 Bad Ischl ×3晚</span></div><div class="day-toggle">▸</div></div>
+    <div class="day-body">
+      <div class="step"><div class="t">08:30</div><div>慕尼黑Hbf乘Railjet→萨尔茨堡（1h30，特价€12–18；临时买则Bayern-Ticket 2人€39更划算）</div></div>
+      <div class="step"><div class="t">10:30</div><div>萨尔茨堡火车站<b>取租车</b>（Sixt/Europcar/Buchbinder柜台都在站内；确认车辆已含奥地利高速Vignette，没有就上<a href="https://shop.asfinag.at/en/toll-products/digital-vignette/10-day-vignette-car/" target="_blank">asfinag.at</a>买10日电子票€12.80）。行李放车上</div></div>
+      <div class="step"><div class="t">11:00</div><div>老城半天：<b>米拉贝尔花园</b>（音乐之声取景,免费）→ 过河<b>粮食胡同 Getreidegasse</b>+<b>莫扎特出生地</b>门口打卡 → <b>萨尔茨堡要塞</b>缆车登顶俯瞰全城（€15.50）。音乐节期间老城处处是盛装观众和临时舞台</div></div>
+      <div class="step"><div class="t">16:30</div><div>自驾B158风景路进湖区（40–55分钟）：St. Gilgen → 湖畔酒店入住</div></div>
+      <div class="step"><div class="t">晚上</div><div>圣沃尔夫冈湖滨栈道散步 + 湖畔晚餐（<b>白马酒店餐厅 Im Weissen Rössl</b>皇帝煎饼,需订位）</div></div>
+      <div class="tip">💡 想蹭音乐节：Kapitelplatz广场傍晚有免费歌剧转播大屏（Siemens Fest&gt;Spiel&gt;Nächte）——如果不急进湖区可以看一段再走。</div>
+    </div>
+  </div>
+
+  <div class="day">
+    <div class="day-head"><div class="day-date"><b>8/4</b><small>周二</small></div><div class="day-title"><b>哈尔施塔特赶早 + 达赫施泰因五指山 + 高萨湖</b><span class="stay">🛏️ 湖区（同上）</span></div><div class="day-toggle">▸</div></div>
+    <div class="day-body">
+      <div class="step"><div class="t">07:00</div><div>出发！<b>8:00前抵达哈尔施塔特P1停车场</b>（先到先得,10点后封场）。晨光中拍北侧"明信片机位"，逛集市广场、人骨教堂（€2），10:30前撤离人潮</div></div>
+      <div class="step"><div class="t">11:00</div><div>开5分钟到Obertraun，乘<b>达赫施泰因缆车</b>上山：一段站→<b>巨型冰洞</b>（洞内0°C,带外套!）；二段站→步行30分钟到<b>五指观景台 5fingers</b>，400米绝壁悬空俯瞰哈尔施塔特湖（全含票约€47.90–68）</div></div>
+      <div class="step"><div class="t">15:30</div><div>下山驱车30分钟到<b>高萨湖 Gosausee</b>：达赫施泰因冰川倒影+环湖1小时，免费,是湖区风光密度最高的一站</div></div>
+      <div class="step"><div class="t">晚上</div><div>回程经Bad Ischl晚餐,或回酒店湖边看日落</div></div>
+      <div class="tip">⚠️ 山区午后14–17点易有雷阵雨——山上项目一律排上午。盐矿和Skywalk关闭中（至2026年9月），别白跑。</div>
+    </div>
+  </div>
+
+  <div class="day">
+    <div class="day-head"><div class="day-date"><b>8/5</b><small>周三</small></div><div class="day-title"><b>夏夫山蒸汽火车 + 湖里游泳 + 茜茜公主小城</b><span class="stay">🛏️ 湖区（同上）</span></div><div class="day-toggle">▸</div></div>
+    <div class="day-body">
+      <div class="step"><div class="t">上午</div><div>圣沃尔夫冈乘<b>夏夫山齿轮蒸汽火车 SchafbergBahn</b>（1893年,奥地利最陡,35分钟登1732米,山顶360°看5个湖,往返€61,<a href="https://www.5schaetze.at/en/schafbergbahn.html" target="_blank">提前线上订座</a>；多云天改其他安排——山顶没景白花钱）</div></div>
+      <div class="step"><div class="t">下午</div><div><b>沃尔夫冈湖游泳</b>！8月水温21–23°C全湖区最暖，湖滨浴场多数免费；或乘百年游船 St. Wolfgang→St. Gilgen 分段船票€8–15</div></div>
+      <div class="step"><div class="t">傍晚</div><div>开20分钟到<b>巴德伊舍 Bad Ischl</b>：茜茜公主订婚地，Esplanade河滨大道散步，<b>Zauner皇家糕点店</b>(1832年)吃Zaunerstollen榛果巧克力糕；时间够可加皇帝别墅导览(€23)</div></div>
+      <div class="tip">💡 备选：已坐夏夫山火车就不用再坐St. Gilgen的十二峰缆车（功能重复）。今晚整理行李，明天离开湖区。</div>
+    </div>
+  </div>
+
+  <div class="day">
+    <div class="day-head"><div class="day-date"><b>8/6</b><small>周四</small></div><div class="day-title"><b>自驾→维也纳（顺路梅尔克修道院）· 到达即还车</b><span class="stay">🛏️ 维也纳 · Hotel Schani/Zeitgeist（中央车站旁）×2晚</span></div><div class="day-toggle">▸</div></div>
+    <div class="day-body">
+      <div class="step"><div class="t">08:30</div><div>退房出发，A1高速向东（湖区→Melk约2h20）</div></div>
+      <div class="step"><div class="t">11:00</div><div><b>梅尔克修道院 Stift Melk</b>：就在高速出口旁5分钟，巴洛克教堂+10万册洛可可图书馆+多瑙河露台，停留1.5小时（€16,英文导览团10:55/13:55），镇上简餐</div></div>
+      <div class="step"><div class="t">14:30</div><div>继续1小时到维也纳，<b>直接还车</b>（推荐Hauptbahnhof中央车站租车中心,就在酒店旁；市中心停车€25–50/天,留车不值）</div></div>
+      <div class="step"><div class="t">16:00</div><div>入住后地铁进老城：<b>圣斯特凡大教堂</b>（免费进,南塔€8）→ 格拉本大街 → <b>霍夫堡宫</b>外观+英雄广场</div></div>
+      <div class="step"><div class="t">晚上</div><div><b>Figlmüller</b> 元祖炸猪排（务必提前几周订位!人均€30–35）→ 饭后去<b>市政厅广场免费音乐电影节</b>：大屏歌剧+美食摊,8月每晚都有</div></div>
+      <div class="tip">💡 今天开车总计约3.5h。买24h交通票（App电子票€9.70）,两天各买一张。</div>
+    </div>
+  </div>
+
+  <div class="day">
+    <div class="day-head"><div class="day-date"><b>8/7</b><small>周五</small></div><div class="day-title"><b>维也纳全天：美泉宫 + 美景宫《吻》+ 咖啡馆</b><span class="stay">🛏️ 维也纳（同上）</span></div><div class="day-toggle">▸</div></div>
+    <div class="day-body">
+      <div class="step"><div class="t">08:30</div><div><b>美泉宫 Schönbrunn</b> 开门即入（⚠️提前2–4周订Grand Tour时段票€28–32）：宫殿60–75分钟 → 免费花园 → 爬上凯旋门Gloriette俯瞰全景，共约3小时</div></div>
+      <div class="step"><div class="t">12:30</div><div>U4回市区，<b>纳旭市场 Naschmarkt</b> 午餐（周五营业,中东小吃+奶酪摊）</div></div>
+      <div class="step"><div class="t">14:30</div><div>二选一：<b>艺术史博物馆 KHM</b>（勃鲁盖尔《巴别塔》,精华1.5h,€22）或 <b>国家歌剧院导览团</b>（€15,8月无演出只能看内部）</div></div>
+      <div class="step"><div class="t">16:30</div><div>经典咖啡馆下午茶：<b>Café Central</b>（弗洛伊德常客,晚上8点后几乎不排队）或 <b>Demel</b>（比Sacher队短,萨赫蛋糕更湿润）</div></div>
+      <div class="step"><div class="t">18:00</div><div><b>美景宫 Upper Belvedere</b>：7–8月延长开放至19:00,<b>傍晚错峰看克里姆特《吻》</b>人最少（线上票€18–20）</div></div>
+      <div class="step"><div class="t">晚上</div><div>轻松收尾：<b>普拉特摩天轮</b>看夜景（€14.50,《爱在黎明破晓前》同款）；或城北Heuriger新酒馆 Mayer am Pfarrplatz 喝自酿白葡萄酒</div></div>
+      <div class="tip">💡 今天最热（可能30°C+）,带水瓶——维也纳街头饮水点可直饮。</div>
+    </div>
+  </div>
+
+  <div class="day">
+    <div class="day-head"><div class="day-date"><b>8/8</b><small>周六</small></div><div class="day-title"><b>上午火车→布拉格 · 下午老城 · 夜游查理大桥</b><span class="stay">🛏️ 布拉格 · Hotel Leonardo 或同级（老城）</span></div><div class="day-toggle">▸</div></div>
+    <div class="day-body">
+      <div class="step"><div class="t">09:00</div><div>维也纳Hbf乘Railjet直达布拉格（约4h,早鸟€15–30,<b>加€3–4.5订座</b>否则8月可能站到布尔诺;oebb.at和cd.cz双平台比价）,13:00抵达中央车站,步行15分钟到老城酒店</div></div>
+      <div class="step"><div class="t">14:00</div><div><b>老城广场</b>：泰恩教堂、整点<b>天文钟</b>报时（就45秒,别期待太高）→ 登旧市政厅塔楼俯瞰红屋顶（350CZK）</div></div>
+      <div class="step"><div class="t">16:00</div><div>过<b>查理大桥</b>（白天人多,先感受气氛）→ 小城区<b>列侬墙</b>打卡 → 坎帕岛河边散步</div></div>
+      <div class="step"><div class="t">18:00</div><div>斯拉夫岛租<b>天鹅脚踏船</b>对着城堡剪影漂着看黄昏（300–500CZK/小时/船）;或登佩特任山看日落（⚠️缆车检修中或未恢复,步行上山25分钟）</div></div>
+      <div class="step"><div class="t">19:30</div><div>晚餐 <b>Lokál Dlouhá</b>：全城最新鲜的罐装皮尔森+奶油炖牛肉svíčková（人均€14–20,<b>必须订位</b>）</div></div>
+      <div class="step"><div class="t">22:00</div><div><b>夜游查理大桥</b>——人少、灯光下的城堡是布拉格的高光时刻,别错过</div></div>
+      <div class="tip">⚠️ 今天是周六,犹太博物馆闭馆（所以排在明天）。全程石板路,穿舒服的鞋。用克朗或刷卡,别碰街头换汇点。</div>
+    </div>
+  </div>
+
+  <div class="day">
+    <div class="day-head"><div class="day-date"><b>8/9</b><small>周日</small></div><div class="day-title"><b>上午城堡区 + 下午犹太区 → 傍晚飞离布拉格</b><span class="stay">✈️ PRG 瓦茨拉夫·哈维尔机场</span></div><div class="day-toggle">▸</div></div>
+    <div class="day-body">
+      <div class="step"><div class="t">08:30</div><div>电车22路上山,<b>布拉格城堡</b>9:00开门即入：<b>圣维特大教堂</b>（穆夏彩窗）→ 旧皇宫 → 黄金巷（卡夫卡故居22号）,联票450CZK,共约3小时</div></div>
+      <div class="step"><div class="t">12:00</div><div>涅鲁达街下山午餐,边走边吃trdelník烟囱卷,过查理大桥回老城</div></div>
+      <div class="step"><div class="t">13:30</div><div><b>犹太区 Josefov</b>（周日开放）：西班牙会堂+旧犹太公墓+平卡斯会堂,联票600CZK,约2小时;或轻松逛哈维尔市场买手信</div></div>
+      <div class="step"><div class="t">16:30</div><div>取行李,中央车站乘<b>AE机场快线</b>（40分钟,200CZK,每30分钟一班）→ PRG机场。国际航班预留起飞前2.5–3小时</div></div>
+      <div class="tip">💡 如果航班是晚上9点后,还能加插高堡Vyšehrad（免费,德沃夏克墓,游客少）。剩的克朗在机场花掉,汇回损失大。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MUNICH ================= -->
+<section id="munich">
+  <div class="city-head"><h2>🍺 慕尼黑 <span class="en">Munich · München</span></h2><span class="city-days">8/1–8/3 · 2晚</span></div>
+  <p class="section-sub">巴伐利亚首府：王宫、啤酒花园、城市冲浪。核心区步行可达，英国花园乘U3/U6。<span class="searchtip">所有景点均含中英文名，可直接复制到 Google Maps 搜索。</span></p>
+  <div class="grid" data-city="munich"></div>
+  <h3>🍽️ 餐厅口碑 Restaurants</h3>
+  <div class="tblwrap"><table>
+    <tr><th>餐厅</th><th>招牌</th><th>人均</th><th>评分</th><th>缺点</th></tr>
+    <tr><td><b class="zh">奥古斯丁酿造间</b><span class="en">Augustiner Bräustuben · Landsberger Str. 19</span></td><td>公认全城最好吃、性价比最高的烤猪肘（啤酒厂马厩改建）</td><td class="price">€15–25</td><td>4.5★</td><td>位置稍偏，晚餐本地人多需等位</td></tr>
+    <tr><td><b class="zh">奥古斯丁地窖</b><span class="en">Augustiner-Keller · Arnulfstr. 52</span></td><td>1328年老厂传奇啤酒花园（5000座），木桶直出Edelstoff</td><td class="price">€20–35</td><td>4.5★</td><td>好天气傍晚一座难求；自助区自己端盘找位</td></tr>
+    <tr><td><b class="zh">皇家啤酒馆</b><span class="en">Hofbräuhaus · Platzl 9</span></td><td>铜管乐队+一升啤酒+烤猪肘，气氛全球独一份</td><td class="price">€25–35</td><td>4.4★</td><td>全是游客、极吵，菜品平庸偏贵——去感受气氛别为了吃</td></tr>
+    <tr><td><b class="zh">Au区乡村酒馆</b><span class="en">Wirtshaus in der Au · Lilienstr. 51</span></td><td>1901年老店，"慕尼黑团子(Knödel)之王"</td><td class="price">€25–40</td><td>4.5★</td><td>离老城步行20分钟，晚餐建议订位</td></tr>
+    <tr><td><b class="zh">施耐德白啤坊</b><span class="en">Schneider Bräuhaus · Tal 7</span></td><td>小麦白啤权威+传统白香肠早餐（按传统只卖到中午）</td><td class="price">€20–30</td><td>4.4★</td><td>内部拥挤翻台快，不如啤酒花园放松</td></tr>
+  </table></div>
+  <h3>🏨 酒店推荐 Hotels（€100–180/晚双人）</h3>
+  <div class="tblwrap"><table>
+    <tr><th>酒店</th><th>约价/晚</th><th>优点</th><th>缺点</th></tr>
+    <tr><td><b class="zh">Motel One München-Hauptbahnhof</b></td><td class="price">€120–150</td><td>出中央车站2分钟，设计感强性价比高，转车零换乘</td><td>房间小(~16㎡)；车站南侧晚间略杂</td></tr>
+    <tr><td><b class="zh">Eden Hotel Wolff 伊登沃尔夫</b></td><td class="price">€150–180</td><td>四星传统酒店正对车站北口，隔音好早餐佳</td><td>装修偏老派；旺季可能触及€180上限</td></tr>
+    <tr><td><b class="zh">Hotel Mio by AMANO</b></td><td class="price">€130–170</td><td>老城内步行5分钟到玛丽恩广场，屋顶酒吧</td><td>临街房周末夜有酒吧噪音；房型紧凑</td></tr>
+  </table></div>
+  <p class="searchtip">📎 订房：<a href="https://www.booking.com/searchresults.html?ss=Munich+Hauptbahnhof&checkin=2026-08-01&checkout=2026-08-03&group_adults=2" target="_blank">Booking.com 慕尼黑 8/1–8/3 ↗</a> · 市内交通：单程€4.10，团体天票€18.60(最多5人) <a href="https://www.mvv-muenchen.de/en/" target="_blank">MVV ↗</a></p>
+</section>
+
+<!-- ================= LAKES ================= -->
+<section id="lakes">
+  <div class="city-head"><h2>🏔️ 萨尔茨堡 & 湖区 <span class="en">Salzburg & Salzkammergut</span></h2><span class="city-days">8/3–8/6 · 3晚 · 自驾段</span></div>
+  <p class="section-sub">音乐之声与茜茜公主的湖光山色。基地选圣沃尔夫冈/巴德伊舍——比住哈尔施塔特便宜一半且位置居中（各景点25–40分钟车程）。</p>
+  <div class="grid" data-city="lakes"></div>
+  <h3>🍽️ 餐厅口碑 Restaurants</h3>
+  <div class="tblwrap"><table>
+    <tr><th>餐厅</th><th>村镇</th><th>招牌</th><th>人均</th><th>评分</th><th>缺点</th></tr>
+    <tr><td><b class="zh">白马酒店餐厅</b><span class="en">Im Weissen Rössl (Steg 73)</span></td><td>圣沃尔夫冈湖畔栈桥</td><td>皇帝煎饼 Kaiserschmarrn、湖鱼</td><td class="price">€35–55</td><td>4.5★</td><td>湖区偏贵，晚餐必须预订</td></tr>
+    <tr><td><b class="zh">Seewirt Zauner</b></td><td>哈尔施塔特集市广场旁</td><td>炭烤白鲑鱼 Reinanke（哈湖直供）</td><td class="price">€25–40</td><td>4.3★</td><td>旺季午市排队，错峰或订位</td></tr>
+    <tr><td><b class="zh">Bräugasthof Hallstatt</b></td><td>哈尔施塔特湖畔</td><td>湖红点鲑 Saibling + 湖景露台</td><td class="price">€25–40</td><td>4.3★</td><td>露台座紧俏，旺季服务偏慢</td></tr>
+    <tr><td><b class="zh">Café Zauner Esplanade</b></td><td>巴德伊舍河滨大道</td><td>Zaunerstollen 榛果巧克力糕（1832年皇家糕点房）</td><td class="price">€10–20</td><td>4.4★</td><td>是咖啡馆非正餐，下午茶属性</td></tr>
+  </table></div>
+  <h3>🏨 住宿推荐 Hotels（战略基地，勿住哈尔施塔特——同级贵50–100%且停车€18/晚）</h3>
+  <div class="tblwrap"><table>
+    <tr><th>酒店</th><th>位置</th><th>约价/晚</th><th>优点</th><th>缺点</th></tr>
+    <tr><td><b class="zh">Strandhotel Margaretha</b></td><td>St. Wolfgang 湖畔</td><td class="price">€160–180</td><td>私家湖滩+码头，步行5分钟到镇中心</td><td>8月须提前数月订，非湖景房无阳台</td></tr>
+    <tr><td><b class="zh">Hotel Goldenes Schiff</b></td><td>Bad Ischl 河畔老城</td><td class="price">€130–160</td><td>全湖区最中心，免费停车方便自驾</td><td>河景无湖景，温泉小城气质非度假村</td></tr>
+    <tr><td><b class="zh">Seehaus Familie Leifer</b></td><td>St. Wolfgang 湖畔民宿</td><td class="price">€110–145</td><td>家庭湖畔小屋直接下水游泳，早餐好评</td><td>房量少手慢无，设施简单无电梯</td></tr>
+  </table></div>
+  <p class="searchtip">📎 订房：<a href="https://www.booking.com/searchresults.html?ss=St.+Wolfgang+im+Salzkammergut&checkin=2026-08-03&checkout=2026-08-06&group_adults=2" target="_blank">Booking.com 圣沃尔夫冈 8/3–8/6 ↗</a>（音乐节期间一房难求，越早越好）</p>
+</section>
+
+<!-- ================= VIENNA ================= -->
+<section id="vienna">
+  <div class="city-head"><h2>🏛️ 维也纳 <span class="en">Vienna · Wien</span></h2><span class="city-days">8/6–8/8 · 2晚</span></div>
+  <p class="section-sub">哈布斯堡帝都：两座宫殿、一幅《吻》、一杯Melange。到达当天立即还车，之后全程步行+地铁（24h票€9.70）。</p>
+  <div class="grid" data-city="vienna"></div>
+  <h3>☕ 经典咖啡馆 Coffee Houses</h3>
+  <div class="tblwrap"><table>
+    <tr><th>咖啡馆</th><th>必点</th><th>人均</th><th>评分</th><th>缺点</th></tr>
+    <tr><td><b class="zh">中央咖啡馆</b><span class="en">Café Central</span></td><td>皇帝煎饼 + Melange（弗洛伊德/托洛茨基常客，最美拱顶大厅）</td><td class="price">€15–20</td><td>4.4★</td><td>旺季排队20–45分钟不接受预订；7:30开门前或晚8点后去几乎不排</td></tr>
+    <tr><td><b class="zh">萨赫咖啡馆</b><span class="en">Café Sacher</span></td><td>原版萨赫蛋糕(1832年配方)+无糖鲜奶油</td><td class="price">€18–25</td><td>4.3★</td><td>全城最贵，高峰排20–40分钟，蛋糕偏干评价两极</td></tr>
+    <tr><td><b class="zh">德梅尔</b><span class="en">Demel</span></td><td>Demel版萨赫蛋糕（更湿润）、可看玻璃后厨</td><td class="price">€15–20</td><td>4.4★</td><td>楼上翻台慢；赶时间一楼买了带走</td></tr>
+  </table></div>
+  <h3>🍽️ 餐厅口碑 Restaurants</h3>
+  <div class="tblwrap"><table>
+    <tr><th>餐厅</th><th>招牌</th><th>人均</th><th>评分</th><th>缺点</th></tr>
+    <tr><td><b class="zh">菲格穆勒</b><span class="en">Figlmüller (Wollzeile)</span></td><td>"炸猪排发源地"(1905)，比盘子还大的Schnitzel</td><td class="price">€30–35</td><td>4.4★</td><td>必须提前几周官网订位，否则排1小时+</td></tr>
+    <tr><td><b class="zh">普拉胡塔</b><span class="en">Plachutta Wollzeile</span></td><td>清炖牛肉 Tafelspitz（皇帝最爱，铜锅上桌）</td><td class="price">€40–50</td><td>4.4★</td><td>价格偏高，两人点一锅+其他菜即可；需订位</td></tr>
+    <tr><td><b class="zh">Schnitzelwirt</b><span class="en">Neubaugasse 52 (第7区)</span></td><td>本地人的平价巨型炸猪排</td><td class="price">€15–20</td><td>4.4★</td><td>装修老旧、确认支付方式；不在老城</td></tr>
+    <tr><td><b class="zh">迈尔酒庄新酒馆</b><span class="en">Mayer am Pfarrplatz (Heuriger)</span></td><td>自酿绿维特利纳白葡萄酒+自助餐台（贝多芬曾住隔壁）</td><td class="price">€20–35</td><td>4.4★</td><td>在城北郊区25–30分钟；赶行程最容易砍的一项</td></tr>
+  </table></div>
+  <h3>🏨 酒店推荐 Hotels</h3>
+  <div class="tblwrap"><table>
+    <tr><th>酒店</th><th>位置</th><th>约价/晚</th><th>优点</th><th>缺点</th></tr>
+    <tr><td><b class="zh">Hotel Schani Wien</b></td><td>中央车站旁</td><td class="price">€110–150</td><td>车站步行3分钟——还车+去布拉格都极方便；手机当房卡</td><td>不在老城，到大教堂地铁3站；晚间周边冷清</td></tr>
+    <tr><td><b class="zh">Hotel Zeitgeist Vienna</b></td><td>中央车站旁</td><td class="price">€120–160</td><td>4星带花园庭院和桑拿，房间比Motel One大</td><td>部分房朝铁轨（备注要安静房）</td></tr>
+    <tr><td><b class="zh">Motel One Wien-Staatsoper</b></td><td>歌剧院旁(第1区边缘)</td><td class="price">€130–170</td><td>位置无敌：歌剧院2分钟、Karlsplatz地铁100米</td><td>房间小(~16㎡)；8月热门需早订</td></tr>
+  </table></div>
+  <p class="searchtip">📎 订房：<a href="https://www.booking.com/searchresults.html?ss=Vienna+Hauptbahnhof&checkin=2026-08-06&checkout=2026-08-08&group_adults=2" target="_blank">Booking.com 维也纳 8/6–8/8 ↗</a> · ⚠️ 8月热浪频发，订房确认有空调！</p>
+</section>
+
+<!-- ================= PRAGUE ================= -->
+<section id="prague">
+  <div class="city-head"><h2>🌉 布拉格 <span class="en">Prague · Praha</span></h2><span class="city-days">8/8–8/9 · 1晚+1.5天</span></div>
+  <p class="section-sub">百塔之城收官。货币是捷克克朗(CZK, €1≈24.5)不是欧元！核心区全靠步行，上城堡乘22路电车。</p>
+  <div class="grid" data-city="prague"></div>
+  <h3>🍽️ 餐厅口碑 Restaurants（⚠️ 老城广场正面的露天餐厅一律绕行——巷子里走两条街价格减半）</h3>
+  <div class="tblwrap"><table>
+    <tr><th>餐厅</th><th>招牌</th><th>啤酒</th><th>人均</th><th>评分</th><th>缺点</th></tr>
+    <tr><td><b class="zh">Lokál Dlouhá</b><span class="en">Dlouhá 33, 老城</span></td><td>奶油炖牛肉配面团子 svíčková、炸猪排</td><td>全城最新鲜的罐装皮尔森(tank beer)，~78CZK/杯</td><td class="price">€14–20</td><td>4.6★</td><td>极其火爆必须订位；大堂嘈杂像食堂</td></tr>
+    <tr><td><b class="zh">U Fleků</b><span class="en">Křemencova 11, 新城</span></td><td>牛肉古拉什 goulash、烤猪肘</td><td>1499年至今自酿13°黑啤</td><td class="price">€20–29</td><td>4.4★</td><td>偏游客化；服务员主动端的蜂蜜酒<b>不是免费的</b>，不要就当场拒绝并核对账单</td></tr>
+    <tr><td><b class="zh">Restaurace Mlejnice</b><span class="en">Kožná 14, 广场旁小巷</span></td><td>烤鸭腿配红卷心菜、面包碗古拉什</td><td>Pilsner Urquell 生啤</td><td class="price">€14–22</td><td>4.5★</td><td>店小等位久，旺季出餐慢</td></tr>
+    <tr><td><b class="zh">U Medvídků</b><span class="en">Na Perštýně 7, 老城</span></td><td>烤猪肘、烤鸭</td><td>1466年老馆，自酿X-Beer 33号称世界最烈</td><td class="price">€16–24</td><td>4.3★</td><td>近购物街游客多，个别菜水准起伏</td></tr>
+  </table></div>
+  <h3>🏨 酒店推荐 Hotels</h3>
+  <div class="tblwrap"><table>
+    <tr><th>酒店</th><th>位置</th><th>约价/晚</th><th>优点</th><th>缺点</th></tr>
+    <tr><td><b class="zh">Hotel Leonardo Prague</b> (4星)</td><td>老城，查理大桥步行4分钟</td><td class="price">€130–170</td><td>位置无敌：夜游查理大桥超方便，早餐口碑好</td><td>老楼部分房偏小；临街房周末夜有酒吧噪音</td></tr>
+    <tr><td><b class="zh">Century Old Town – MGallery</b> (4星)</td><td>老城边缘，共和国广场旁</td><td class="price">€120–160</td><td>卡夫卡工作过的大楼改建；赶AE机场大巴极方便</td><td>到查理大桥步行15分钟；装修略旧</td></tr>
+    <tr><td><b class="zh">Hotel Pod Věží</b> (4星)</td><td>小城区，查理大桥桥塔脚下</td><td class="price">€150–180</td><td>清晨出门即独享无人查理大桥</td><td>贴近预算上限；隔音一般；离车站需电车</td></tr>
+  </table></div>
+  <p class="searchtip">📎 订房：<a href="https://www.booking.com/searchresults.html?ss=Prague+Old+Town&checkin=2026-08-08&checkout=2026-08-09&group_adults=2" target="_blank">Booking.com 布拉格 8/8–8/9 ↗</a> · 市内交通90分钟票50CZK(App 46)，24h票150CZK，上车必须打卡验票（罚1500CZK）<a href="https://pid.cz/en/tickets-and-fare/" target="_blank">PID ↗</a></p>
+</section>
+
+<!-- ================= TRANSPORT ================= -->
+<section id="transport">
+  <h2>🚄 城际交通 & 租车 <span class="en">Transport & Car Rental</span></h2>
+  <div class="tblwrap"><table>
+    <tr><th>区段</th><th>方式</th><th>时长</th><th>价格/人</th><th>购票 & 提示</th></tr>
+    <tr><td><b class="zh">法兰克福机场 → 慕尼黑</b><span class="en">FRA Fernbahnhof → München Hbf</span></td><td>ICE 直达</td><td>3h15–3h50</td><td class="price">特价€20–40<br>全价~€100</td><td><a href="https://www.bahn.de" target="_blank">bahn.de ↗</a> 提前180天放票；特价票绑定车次，航班延误有风险，预留≥2h缓冲</td></tr>
+    <tr><td><b class="zh">慕尼黑 → 萨尔茨堡</b><span class="en">München → Salzburg</span></td><td>Railjet / BRB区域车</td><td>1h30 / ~2h</td><td class="price">特价€12–18<br>Bayern-Ticket 2人€39</td><td>提前订Railjet更快更便宜；临时买则拜仁州票灵活（周末全天有效）</td></tr>
+    <tr><td><b class="zh">萨尔茨堡 → 湖区 → 维也纳</b><span class="en">Salzburg → Salzkammergut → Wien</span></td><td>🚗 租车自驾</td><td>共约440km</td><td class="price">油费~€45<br>+Vignette €12.80</td><td>B158风景路进湖区；Hallstatt→Vienna走A1约3.5h；<a href="https://shop.asfinag.at/en/toll-products/digital-vignette/10-day-vignette-car/" target="_blank">10日电子高速票 ↗</a>（租的车通常已含,取车确认）</td></tr>
+    <tr><td><b class="zh">维也纳 → 布拉格</b><span class="en">Wien Hbf → Praha hl.n.</span></td><td>Railjet 直达（备选RegioJet）</td><td>~4h</td><td class="price">早鸟€15–30<br>RegioJet €15–24</td><td><a href="https://tickets.oebb.at" target="_blank">oebb.at ↗</a> / <a href="https://www.cd.cz/en/" target="_blank">cd.cz ↗</a> 双平台比价，提前2–3个月放票；<b>8月务必加€3–4.5订座</b></td></tr>
+    <tr><td><b class="zh">布拉格市区 → 机场</b><span class="en">Praha hl.n. → PRG Airport</span></td><td>AE机场快线 / 地铁A+59路</td><td>40分钟 / 50分钟</td><td class="price">200 CZK / 50 CZK</td><td>AE每30分钟一班可刷卡；<a href="https://www.prg.aero/en/airport-express" target="_blank">prg.aero ↗</a> 傍晚航班提前3h从老城出发</td></tr>
+  </table></div>
+
+  <h3>🚗 租车明细（萨尔茨堡取 8/3 → 维也纳还 8/6）</h3>
+  <div class="panel">
+    <ul style="padding-left:20px;font-size:14.5px;display:grid;gap:8px">
+      <li><b>取车</b>：萨尔茨堡中央火车站租车中心（Sixt / Europcar / Hertz / Avis / Buchbinder 柜台都在站内）</li>
+      <li><b>还车</b>：维也纳中央车站(Hauptbahnhof)租车中心——就在推荐酒店旁，到达当天立即还</li>
+      <li><b>价格</b>：紧凑型8月旺季约 <b class="price">€45–80/天</b>，4天合计约 <b class="price">€180–320</b>（经 rentalcars.com / discovercars.com 比价；提前2–3个月锁价）</li>
+      <li><b>奥地利境内单程费</b>：约 <b class="price">€50–100</b>（Buchbinder等本土公司有时更低，预订页会直接显示"one-way fee"）</li>
+      <li><b>证件</b>：主驾本人信用卡（押金预授权）+ 护照 + 驾照。<b>加拿大驾照需IDP国际驾驶许可</b>（CAA办理约$25）；中国驾照需公证翻译件且部分公司不收，提前邮件确认</li>
+      <li><b>注意</b>：奥地利租车默认手动挡，自动挡要提前选且贵20–30%；确认车辆含高速Vignette</li>
+      <li><b>哈尔施塔特停车</b>：小镇禁外来车,只能停P1(近镇,步行15分钟)/P2(1.5km,免费接驳)。1h €5 / 3–4h €10 / 24h €18。<b>不可预订,8月8:30前到</b> <a href="https://www.hallstatt.net/parking-in-hallstatt/cars/" target="_blank">官方停车页 ↗</a></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= BUDGET ================= -->
+<section id="budget">
+  <h2>💶 费用估算 <span class="en">Budget（人均 · 2人同行均摊 · 不含跨洋机票）</span></h2>
+  <div class="tblwrap"><table>
+    <tr><th>项目</th><th>省着花</th><th>放开花</th><th>备注</th></tr>
+    <tr><td>城际交通（ICE + Railjet ×2 + 机场大巴）</td><td class="price">€55</td><td class="price">€120</td><td>提前2–3个月买早鸟票 vs 临期购票</td></tr>
+    <tr><td>租车均摊（车费+单程费+油+高速票+停车 ÷2）</td><td class="price">€140</td><td class="price">€230</td><td>车€180–320 + 单程€50–100 + 油€45 + Vignette €12.80 + 停车~€25</td></tr>
+    <tr><td>酒店 8晚（€100–180/晚 ÷2人）</td><td class="price">€400</td><td class="price">€720</td><td>音乐节期间湖区偏贵，布拉格最便宜</td></tr>
+    <tr><td>餐饮 9天</td><td class="price">€360</td><td class="price">€540</td><td>每天€40–60；布拉格物价约为德奥的70–80%</td></tr>
+    <tr><td>景点门票</td><td class="price">€100</td><td class="price">€180</td><td>大头：达赫施泰因€48–68、夏夫山€61、美泉宫€28–32、布拉格城堡€18</td></tr>
+    <tr><td>市内交通</td><td class="price">€40</td><td class="price">€70</td><td>各城市天票</td></tr>
+    <tr><td><b>人均合计</b></td><td class="price"><b>≈ €1,095</b></td><td class="price"><b>≈ €1,860</b></td><td></td></tr>
+  </table></div>
+  <div class="panel" style="margin-top:14px;font-size:14px">
+    <b>💳 货币与实用：</b>德国/奥地利用<b>欧元</b>，捷克用<b>克朗</b>(€1≈24.5CZK)。三国刷卡+Apple Pay普及率高，德国小店偶尔只收现金（备€50–100）。小费：德奥账单加5–10%或凑整；捷克10%。通讯：出发前买欧洲eSIM（Airalo/Holafly，10GB/30天约€15–25），三国通用无漫游费。
+  </div>
+</section>
+
+<!-- ================= WEATHER ================= -->
+<section id="weather">
+  <h2>🌤️ 八月天气 & 打包清单 <span class="en">Weather & Packing</span></h2>
+  <div class="wgrid">
+    <div class="wcard"><b>慕尼黑 Munich</b><div class="temp">24° / 13°</div><div class="rain">☔ 雨概率 40–50%</div><div class="note">午后偶有雷阵雨，早晚凉，啤酒花园坐到晚上要薄外套</div></div>
+    <div class="wcard"><b>湖区 Salzkammergut</b><div class="temp">23° / 11°</div><div class="rain">☔ 雨概率 50–55%（全程最多雨）</div><div class="note">山上比湖边低8–10°C；午后14–17点易雷阵雨→山上项目排上午。湖水21–23°C可游泳</div></div>
+    <div class="wcard"><b>维也纳 Vienna</b><div class="temp">27° / 16°</div><div class="rain">☔ 雨概率 35–40%</div><div class="note">全程最热，可能30°C+热浪；街头饮水点可直饮；订酒店确认空调</div></div>
+    <div class="wcard"><b>布拉格 Prague</b><div class="temp">25° / 14°</div><div class="rain">☔ 雨概率 40%</div><div class="note">温暖宜人，傍晚河边微凉，适合暴走</div></div>
+  </div>
+  <h3>🎒 打包清单（可勾选，自动保存）</h3>
+  <div class="panel">
+    <div class="packlist" id="packlist">
+      <label><input type="checkbox"><span>护照 + 申根签证 / eTA相关文件</span></label>
+      <label><input type="checkbox"><span>驾照 + <b>IDP国际驾驶许可</b>（CAA办理）</span></label>
+      <label><input type="checkbox"><span>主驾本人信用卡（租车押金预授权）</span></label>
+      <label><input type="checkbox"><span>欧洲eSIM（Airalo/Holafly，出发前装好）</span></label>
+      <label><input type="checkbox"><span>€50–100 现金（德国小店备用）</span></label>
+      <label><input type="checkbox"><span>舒适防滑运动鞋（布拉格石板路+冰洞+五指台步道）</span></label>
+      <label><input type="checkbox"><span>轻便防雨外套 / 折叠伞（午后雷阵雨+冰洞0°C两用）</span></label>
+      <label><input type="checkbox"><span>泳衣 + 速干毛巾（沃尔夫冈湖21–23°C）</span></label>
+      <label><input type="checkbox"><span>防晒霜 + 帽子 + 墨镜（高海拔紫外线强）</span></label>
+      <label><input type="checkbox"><span>薄长袖/针织衫（夜游查理大桥、山顶、空调车厢）</span></label>
+      <label><input type="checkbox"><span>水瓶（维也纳可直饮，超市水便宜）</span></label>
+      <label><input type="checkbox"><span>欧标转换插头（Type C/F）+ 充电宝</span></label>
+      <label><input type="checkbox"><span>提前订：美泉宫时段票（提前2–4周）</span></label>
+      <label><input type="checkbox"><span>提前订：Figlmüller / Lokál / 白马酒店餐厅 订位</span></label>
+      <label><input type="checkbox"><span>提前订：火车票早鸟（bahn.de / oebb.at / cd.cz）</span></label>
+      <label><input type="checkbox"><span>提前订：租车（比价+确认IDP和单程费）</span></label>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  德奥捷9日游攻略 · 2026.8.1–8.9 · 资料核实于2026年7月 · 价格与开放时间以官网为准<br>
+  图片来源 Wikimedia Commons · 地图 © OpenStreetMap contributors
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ============ 景点数据 Attractions ============ */
+const DATA = {
+munich: [
+ {zh:"玛丽恩广场",en:"Marienplatz",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Rathaus_and_Marienplatz_from_Peterskirche_-_August_2006.jpg/800px-Rathaus_and_Marienplatz_from_Peterskirche_-_August_2006.jpg",
+  desc:"慕尼黑老城心脏，新市政厅新哥特式立面 + 木偶报时钟（11:00/12:00/17:00表演）。所有老城步行游的起点，步行可达王宫、谷物市场。",
+  hours:"全天开放 · 塔楼~10:00–20:00",price:"免费 · 塔楼€6.50",rate:"4.7",con:"全天游客密集；木偶钟表演节奏慢观感一般，别抱过高期待",url:"https://www.muenchen.de/en/sights/attractions/marienplatz"},
+ {zh:"慕尼黑王宫",en:"Munich Residenz",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Aerial_image_of_Munich_Residenz.jpg/800px-Aerial_image_of_Munich_Residenz.jpg",
+  desc:"德国最大城市宫殿，维特尔斯巴赫王朝400年王宫：130+展厅、洛可可祖先画廊、金碧辉煌的古董厅，珍宝馆藏欧洲顶级王室珠宝。",
+  hours:"9:00–18:00（末入17:00）",price:"€10 · 联票€15",rate:"4.6",con:"动线极长，认真看要3小时+；快节奏建议只走90分钟精华路线",url:"https://www.residenz-muenchen.de/englisch/tourist/index.htm"},
+ {zh:"英国花园",en:"English Garden · Englischer Garten",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Aerial_image_of_Englischer_Garten_in_Munich_%28view_from_the_southwest%29.jpg/800px-Aerial_image_of_Englischer_Garten_in_Munich_%28view_from_the_southwest%29.jpg",
+  desc:"世界最大城市公园之一（比中央公园还大）：Eisbach河上的城市冲浪者 + 中国塔啤酒花园（7000座）。夏天在树下喝一升啤酒是最地道的慕尼黑。",
+  hours:"24小时",price:"免费",rate:"4.7",con:"公园极大容易走断腿；南部草坪有裸晒传统区域；雨天体验大打折扣",url:"https://www.muenchen.de/en/sights/attractions/english-garden"},
+ {zh:"皇家啤酒馆",en:"Hofbräuhaus am Platzl",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Hofbrauhaus.JPG/800px-Hofbrauhaus.JPG",
+  desc:"1589年公爵创立的世界最著名啤酒馆：3000座、铜管乐队每天12:00–16:00现场演奏、长桌拼桌举杯合唱，巴伐利亚啤酒文化图腾。",
+  hours:"11:00–24:00",price:"免费进 · 一升啤酒€10–11",rate:"4.4",con:"几乎全是游客、极度嘈杂；菜品平庸偏贵——去感受气氛，别为了吃",url:"https://www.hofbraeuhaus.de/en/"},
+ {zh:"谷物市场",en:"Viktualienmarkt",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Viktualienmarkt_2016.jpg/800px-Viktualienmarkt_2016.jpg",
+  desc:"1807年至今的露天食品市场，140+摊位：奶酪、香肠、蜂蜜，中央自带啤酒花园。站着吃Obazda奶酪配碱水结，最快了解慕尼黑的味道。",
+  hours:"周一–六 8:00–20:00 · ⚠️周日关闭",price:"免费 · 小吃€10–20",rate:"4.5",con:"⚠️行程中8/2是周日关门——必须排在8/1！摊位有'游客加成价'",url:"https://www.muenchen.de/en/sights/attractions/viktualienmarkt"},
+ {zh:"宁芬堡宫",en:"Nymphenburg Palace · Schloss Nymphenburg",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Image-Schloss_Nymphenburg_Munich_CC_edit3.jpg/800px-Image-Schloss_Nymphenburg_Munich_CC_edit3.jpg",
+  desc:"王室夏宫，700米宽巴洛克立面 + 天鹅湖经典明信片画面；'美人画廊'藏36幅路德维希一世钦点的美女肖像。游客密度远低于市中心。",
+  hours:"9:00–18:00",price:"€8 · 联票€12–15 · 花园免费",rate:"4.6",con:"在西北郊，Tram 17往返约80分钟——两日快节奏行程中属可砍项",url:"https://www.schloss-nymphenburg.de/englisch/palace/index.htm"},
+ {zh:"圣母教堂",en:"Frauenkirche",img:"",icon:"⛪",
+  desc:"慕尼黑天际线象征：99米洋葱顶双塔是全城限高线由来，内有'魔鬼脚印'传说。登南塔俯瞰老城、晴天远眺阿尔卑斯山。",
+  hours:"教堂8:00–20:00 · 南塔10:00–17:00",price:"教堂免费 · 登塔€7.50",rate:"4.6",con:"战后重建内部较朴素；登塔票只能现场买，旺季排队",url:"https://www.muenchner-dom.de/"},
+ {zh:"宝马世界 & 博物馆",en:"BMW Welt & BMW Museum",img:"",icon:"🏎️",
+  desc:"奥林匹克公园旁的未来主义双子建筑：BMW Welt免费展厅（最新车+摩托+劳斯莱斯），碗状博物馆讲百年品牌史。车迷朝圣地。",
+  hours:"Welt 9:00–18:00 · 博物馆周二–日10:00–18:00",price:"Welt免费 · 博物馆€17",rate:"4.5",con:"博物馆€17对非车迷偏贵；在城北U3约15分钟，与其他景点不顺路",url:"https://www.bmw-welt.com/en/index.html"}
+],
+lakes: [
+ {zh:"哈尔施塔特",en:"Hallstatt",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Hallstatt_-_Zentrum_.JPG/800px-Hallstatt_-_Zentrum_.JPG",
+  desc:"世界遗产湖畔小镇，北侧'明信片机位'（教堂后方湖岸路）是刷屏照拍摄点；集市广场、湖畔栈道、人骨教堂（€2）步行串联。⚠️盐矿+Skywalk改造关闭至2026年9月。",
+  hours:"全天 · 人骨教堂10:00–18:00",price:"镇区免费 · 停车1h€5/4h€10",rate:"4.6",con:"过度旅游极其严重（日均上万人）——8:30前抵达，10:30前拍完撤离；或17点后来拍傍晚光",url:"https://www.hallstatt.net/"},
+ {zh:"达赫施泰因冰洞 & 五指观景台",en:"Dachstein Ice Cave & 5fingers",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Dachstein_Rieseneish%C3%B6hle_Parzifaldom_20210918.jpg/800px-Dachstein_Rieseneish%C3%B6hle_Parzifaldom_20210918.jpg",
+  desc:"缆车上山两连击：一段站巨型冰洞（冰瀑冰宫，洞内0°C），二段站步行30分钟到'五指'悬空观景台——五条钢指伸出400米绝壁，俯瞰哈尔施塔特湖全景。",
+  hours:"8月缆车 8:40–19:00",price:"缆车三段€47.90 · 全含票€68",rate:"4.7",con:"全程需半天+；冰洞必须带外套；雷雨天五指台体验大打折扣——排上午",url:"https://www.dachstein-salzkammergut.com/en/"},
+ {zh:"高萨湖",en:"Gosausee",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Dachsteingosau.JPG/800px-Dachsteingosau.JPG",
+  desc:"达赫施泰因冰川倒映湖中的'阿尔卑斯之眼'，环湖步道约1小时，湖区风光密度最高的免费景点。可加乘Gosaukamm缆车看冰川全景。",
+  hours:"全天",price:"免费 · 停车数欧 · 缆车€20+",rate:"4.8",con:"晴天周末停车场易满；早晨湖面最平静倒影最好",url:"https://dachstein.salzkammergut.at/en/oesterreich-poi/detail/201791/cablecar-gosaukamm-zwieselalm.html"},
+ {zh:"圣沃尔夫冈小镇",en:"St. Wolfgang",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/St._Wolfgang_im_Salzkammergut_-_Ortsansicht.JPG/800px-St._Wolfgang_im_Salzkammergut_-_Ortsansicht.JPG",
+  desc:"沃尔夫冈湖畔白墙红瓦朝圣小镇，因轻歌剧《白马酒店》闻名；教区教堂的帕赫祭坛（1481年）是奥地利哥特艺术巅峰。湖滨栈道适合傍晚散步。",
+  hours:"全天 · 教堂9:00–18:00",price:"免费",rate:"4.6",con:"镇内停车紧张且收费；旺季白天游客多（但远少于哈尔施塔特）",url:"https://wolfgangsee.salzkammergut.at/en/"},
+ {zh:"夏夫山齿轮蒸汽火车",en:"SchafbergBahn Cog Railway",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Aerial_image_of_the_Wolfgangsee_%28view_from_the_southeast%29.jpg/800px-Aerial_image_of_the_Wolfgangsee_%28view_from_the_southeast%29.jpg",
+  desc:"1893年奥地利最陡蒸汽齿轮火车，35分钟爬升1190米登顶Schafberg（1732m），山顶360°俯瞰湖区5个湖泊，《音乐之声》野餐场景取景地。",
+  hours:"每日运行，旺季约20–30分钟一班",price:"往返€61 · 单程€43",rate:"4.6",con:"价格高且旺季需线上订座；山顶多云=白花钱，出发前看天气再决定",url:"https://www.5schaetze.at/en/schafbergbahn.html"},
+ {zh:"沃尔夫冈湖游泳 & 游船",en:"Wolfgangsee Lake & Cruise",img:"",icon:"🏊",
+  desc:"湖区水温最暖的湖之一（8月21–23°C，完全可游），百年航线游船连接St. Gilgen–St. Wolfgang–Strobl；湖滨浴场众多，下午跳湖降温绝佳。",
+  hours:"游船9:00–18:00",price:"浴场多免费 · 分段船票€8–15",rate:"4.7",con:"午后雷雨来临前风浪起，游泳注意天气",url:"https://www.5schaetze.at/en/Info_SchafbergBahn_and_WolfgangseeSchifffahrt.html"},
+ {zh:"巴德伊舍 & 皇帝别墅",en:"Bad Ischl & Kaiservilla",img:"",icon:"👑",
+  desc:"茜茜公主与弗朗茨·约瑟夫订婚的温泉小城（2024欧洲文化之都）；皇帝别墅为皇室夏宫（导览制），Esplanade河滨大道配1832年皇家糕点店Zauner。",
+  hours:"别墅导览 9:30–17:00",price:"别墅+花园€23–24 · 老城免费",rate:"4.4",con:"导览以德语为主（发英文讲义）；赶时间可只逛老城喝咖啡不进别墅",url:"https://www.kaiservilla.at/index.php/en/"},
+ {zh:"米拉贝尔宫花园",en:"Mirabell Palace & Gardens (萨尔茨堡)",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Palatul_Mirabell1.jpg/800px-Palatul_Mirabell1.jpg",
+  desc:"巴洛克宫殿花园，《音乐之声》Do-Re-Mi取景地，正对萨尔茨堡要塞的经典构图机位；大理石厅号称'世界最美婚礼厅'。",
+  hours:"花园6:00–天黑",price:"免费",rate:"4.7",con:"旺季清晨后旅行团扎堆，拍空镜要赶8点前",url:"https://www.salzburg.info/en/sights/top10/mirabell-palace-gardens"},
+ {zh:"萨尔茨堡要塞",en:"Hohensalzburg Fortress (萨尔茨堡)",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Salzburg_-_Festung_Hohensalzburg.JPG/800px-Salzburg_-_Festung_Hohensalzburg.JPG",
+  desc:"中欧保存最完好的中世纪城堡，54秒缆车登顶俯瞰老城+阿尔卑斯全景，萨尔茨堡的城市名片。",
+  hours:"5–8月 8:30–21:00",price:"含缆车€15.50 · 步行上山€12",rate:"4.6",con:"缆车排队可达30–45分钟——线上购票或步行上山（15–20分钟）",url:"https://www.festung-hohensalzburg.at/en/"},
+ {zh:"粮食胡同 & 莫扎特出生地",en:"Getreidegasse & Mozart's Birthplace (萨尔茨堡)",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Getreidegasse_am_Nachmittag%2C_Salzburg.jpg/800px-Getreidegasse_am_Nachmittag%2C_Salzburg.jpg",
+  desc:"世遗老城核心购物街，以铁艺招牌闻名（连麦当劳都是复古招牌）；9号黄色楼房是莫扎特1756年出生地，藏其童年小提琴与亲笔乐谱。",
+  hours:"街道全天 · 博物馆7–8月 8:30–19:00",price:"街道免费 · 博物馆€15",rate:"4.6 / 4.2",con:"音乐节期间人流密度极高；博物馆展品文字为主，时间紧可只在楼下打卡",url:"https://mozarteum.at/en/mozart-museums/mozarts-birthplace"}
+],
+vienna: [
+ {zh:"美泉宫",en:"Schönbrunn Palace · Schloss Schönbrunn",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Wien_-_Schloss_Sch%C3%B6nbrunn.JPG/800px-Wien_-_Schloss_Sch%C3%B6nbrunn.JPG",
+  desc:"哈布斯堡夏宫、茜茜公主居所，1441间房的巴洛克宫殿+免费法式花园+凯旋门观景台。维也纳访问量第一。推荐Grand Tour（40间房含玛丽亚·特蕾莎套房）。",
+  hours:"8:30–17:30+",price:"Grand Tour €28–32",rate:"4.7",con:"⚠️8月必须提前2–4周订时段票；室内像'传送带'且禁止拍照；至少留半天",url:"https://www.schoenbrunn.at/en/tickets-and-prices/all-tickets-tours"},
+ {zh:"美景宫（克里姆特《吻》）",en:"Belvedere · Der Kuss",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Palacio_Belvedere%2C_Viena%2C_Austria%2C_2020-02-01%2C_DD_93-95_HDR.jpg/800px-Palacio_Belvedere%2C_Viena%2C_Austria%2C_2020-02-01%2C_DD_93-95_HDR.jpg",
+  desc:"欧根亲王巴洛克双宫殿，上美景宫藏世界最大克里姆特收藏——镇馆之宝《吻》必看，另有席勒、莫奈。两宫之间法式花园免费。",
+  hours:"9:00–18:00 · 7/15–8/31延长至19:00",price:"上宫线上票€18–19.80",rate:"4.7",con:"《吻》前永远围一圈拍照的人——开门时段或闭馆前1小时人最少（行程排在傍晚错峰）",url:"https://www.belvedere.at/en/visit/upper-belvedere"},
+ {zh:"圣斯特凡大教堂",en:"St. Stephen's Cathedral · Stephansdom",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Wien_-_Stephansdom_%281%29.JPG/800px-Wien_-_Stephansdom_%281%29.JPG",
+  desc:"维也纳地标：137米哥特南塔+25万块彩瓦屋顶。中殿免费进；登南塔（343级台阶）看老城全景，北塔电梯看大钟。",
+  hours:"6:00–22:00（收费区9:00–17:30）",price:"免费进 · 南塔€8 · 通票€25",rate:"4.7",con:"门口'莫扎特装扮'音乐会推销员很烦——直接无视；南塔楼梯窄且闷热",url:"https://www.stephanskirche.at/info.php"},
+ {zh:"霍夫堡宫 & 茜茜博物馆",en:"Hofburg & Sisi Museum",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Wien_-_Neue_Hofburg.JPG/800px-Wien_-_Neue_Hofburg.JPG",
+  desc:"哈布斯堡600年冬宫（现总统府）：茜茜博物馆+皇家公寓+银器馆，茜茜公主生平文物最全。外部英雄广场免费。",
+  hours:"9:00–17:30",price:"茜茜博物馆€20（含语音导览）",rate:"4.6",con:"看过美泉宫室内会有重复感——只看建筑外观+广场也可（免费30分钟）",url:"https://www.sisimuseum-hofburg.at/en/tickets/tickets-prices"},
+ {zh:"艺术史博物馆",en:"Kunsthistorisches Museum (KHM)",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Maria-Theresien-Platz_Kunsthistorisches_Museum_Wien_2010.jpg/800px-Maria-Theresien-Platz_Kunsthistorisches_Museum_Wien_2010.jpg",
+  desc:"哈布斯堡皇家收藏、世界十大美术馆：勃鲁盖尔《巴别塔》《雪中猎人》、维米尔、拉斐尔、卡拉瓦乔，以及华丽炸裂的大理石楼梯和圆顶咖啡厅。",
+  hours:"10:00–18:00 · 周四至21:00 · 6–8月周一也开",price:"线上€22",rate:"4.8",con:"认真看要3小时+——快节奏只刷勃鲁盖尔厅+绘画馆精华（1.5小时）",url:"https://www.khm.at/en/visit"},
+ {zh:"国家歌剧院",en:"Vienna State Opera · Wiener Staatsoper",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Wiener_Staatsoper_Front.jpg/800px-Wiener_Staatsoper_Front.jpg",
+  desc:"世界顶级歌剧院。⚠️7–8月暑休无演出——替代：40分钟英文导览团（€15，暑期天天有），或市政厅广场免费夏季音乐电影节（每晚大屏歌剧+美食摊）。",
+  hours:"导览团10:00–16:00多场次",price:"导览~€15 · 电影节免费",rate:"4.8",con:"8月看不了真演出是硬伤；导览热门时段也要提前订",url:"https://www.wiener-staatsoper.at/en/guided-tours/"},
+ {zh:"纳旭市场",en:"Naschmarkt",img:"",icon:"🥙",
+  desc:"维也纳最大露天市场，1.5公里120+摊位：中东小吃、奶酪橄榄、海鲜餐馆。适合轻松的午餐/早午餐。",
+  hours:"周一–五6:00–21:00 · 周六至18:00 · 周日关",price:"免费进",rate:"4.4",con:"越来越游客化价格偏高，部分摊主拉客——买干果蜜饯先问价",url:"https://www.wien.info/en/dine-drink/markets/naschmarkt-353536"},
+ {zh:"普拉特摩天轮",en:"Prater · Wiener Riesenrad",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Wien_Riesenrad.jpg/800px-Wien_Riesenrad.jpg",
+  desc:"1897年世界最老摩天轮之一（《爱在黎明破晓前》取景地），65米木质包厢俯瞰夜景；周围百年游乐场免票入园按项目付费。",
+  hours:"9:00–23:45",price:"摩天轮€14.50",rate:"4.5",con:"转一圈仅12–15分钟性价比一般；游乐场项目单独收费容易越花越多",url:"https://wienerriesenrad.com/en/tickets/"},
+ {zh:"梅尔克修道院（顺路）",en:"Melk Abbey · Stift Melk",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Stift_Melk%2C_Westansicht.jpg/800px-Stift_Melk%2C_Westansicht.jpg",
+  desc:"瓦豪河谷入口的巴洛克本笃会修道院：金色教堂+10万册洛可可图书馆+俯瞰多瑙河的露台，《玫瑰之名》灵感来源。就在A1高速出口旁5分钟，湖区→维也纳几乎零绕路。",
+  hours:"9:00–17:30 · 英文导览10:55/13:55/14:55",price:"自由参观€16 · 含导览€20",rate:"4.6",con:"圣物展厅略拖沓；赶路只看教堂+图书馆+露台（1.5小时）",url:"https://www.stiftmelk.at/en/visit-experience/opening-hours-prices-guided-tours/"}
+],
+prague: [
+ {zh:"布拉格城堡 & 圣维特大教堂",en:"Prague Castle & St. Vitus Cathedral · Pražský hrad",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Karl%C5%AFv_most_Praha%2C_Star%C3%A9_M%C4%9Bsto_20170810_007.jpg/800px-Karl%C5%AFv_most_Praha%2C_Star%C3%A9_M%C4%9Bsto_20170810_007.jpg",
+  desc:"世界最大古代城堡建筑群、总统府所在。核心：哥特杰作圣维特大教堂（穆夏彩窗）、旧皇宫、黄金巷（卡夫卡曾住22号）。俯瞰全城红屋顶的经典机位。",
+  hours:"庭院6:00–22:00 · 内部9:00–17:00",price:"主线联票450CZK≈€18（2天有效）",rate:"4.7",con:"安检+圣维特门口人流极大——9点开门前到；上坡台阶多正午暴晒",url:"https://www.hrad.cz/en/prague-castle-for-visitors/tickets"},
+ {zh:"查理大桥",en:"Charles Bridge · Karlův most",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Prague_07-2016_view_from_Lesser_Town_Tower_of_Charles_Bridge_img3.jpg/800px-Prague_07-2016_view_from_Lesser_Town_Tower_of_Charles_Bridge_img3.jpg",
+  desc:"1357年查理四世下令建造的哥特石桥，30尊巴洛克圣像（摸圣约翰·内波穆克浮雕带来好运）。布拉格最经典明信片画面，桥塔可登顶。",
+  hours:"24小时 · 桥塔9:00–20:30",price:"过桥免费 · 桥塔~250CZK",rate:"4.7",con:"白天10–20点人山人海无法拍照且扒手高发——最佳时间：日出前后或22点以后",url:"https://prague.eu/en/objevujte/charles-bridge-karluv-most/"},
+ {zh:"老城广场 & 天文钟",en:"Old Town Square & Astronomical Clock · Orloj",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Astronomical_Clock_%288341899828%29.jpg/800px-Astronomical_Clock_%288341899828%29.jpg",
+  desc:"布拉格心脏：泰恩教堂双塔环绕，1410年天文钟是世界现存最古老仍运转的天文钟，整点十二使徒木偶巡游免费看。可登旧市政厅塔楼360°俯瞰。",
+  hours:"广场24小时 · 塔楼9:00–20:00",price:"免费 · 塔楼350CZK≈€14",rate:"4.7",con:"整点报时只有约45秒别期待太高；周边餐厅和换汇点多为宰客陷阱，人群中防扒手",url:"https://prague.eu/en/objevujte/old-town-hall-with-astronomical-clock-staromestska-radnice-s-orlojem/"},
+ {zh:"犹太区",en:"Jewish Quarter · Josefov",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Jewish_tawnhall_%28Prague%29.jpg/800px-Jewish_tawnhall_%28Prague%29.jpg",
+  desc:"欧洲保存最完整的犹太历史街区：西班牙会堂、层层叠葬1.2万墓碑的旧犹太公墓、刻着8万遇难者姓名的平卡斯会堂。卡夫卡出生地也在此。",
+  hours:"9:00–18:00 · ⚠️周六闭馆",price:"联票600CZK≈€24（3天有效）",rate:"4.5",con:"⚠️8/8周六闭馆——只能8/9周日参观（行程已排好）；联票偏贵内容沉重",url:"https://www.jewishmuseum.cz/en/info/visit/opening-hours/"},
+ {zh:"佩特任山 & 瞭望塔",en:"Petřín Hill & Tower",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Pet%C5%99%C3%ADnsk%C3%A1_rozhledna%2C_Prague.jpg/800px-Pet%C5%99%C3%ADnsk%C3%A1_rozhledna%2C_Prague.jpg",
+  desc:"老城对岸绿色山丘，山顶63.5米'小埃菲尔铁塔'（1891年），299级台阶登顶一览全城+城堡全景；山坡玫瑰园适合傍晚放空。",
+  hours:"公园24小时 · 塔9:00–21:30",price:"公园免费 · 塔250CZK",rate:"4.7",con:"⚠️缆车大修中、2026年Q3才可能恢复——需步行上山约25分钟；塔顶楼梯窄旺季排队",url:"https://prague.eu/en/objevujte/petrin-tower-petrinska-rozhledna/"},
+ {zh:"列侬墙",en:"Lennon Wall · Lennonova zeď",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Lennon_Wall%2C_August_2014.jpg/800px-Lennon_Wall%2C_August_2014.jpg",
+  desc:"小城区涂满列侬肖像与和平标语的彩墙，1980年代起是捷克年轻人追求自由的象征，至今不断被覆盖更新。距查理大桥5分钟，顺路打卡。",
+  hours:"24小时",price:"免费",rate:"4.4",con:"就是一面墙5–10分钟看完；白天拍照要排队等空位",url:"https://prague.eu/en/objevujte/lennon-wall-lennonova-zed/"},
+ {zh:"伏尔塔瓦河游船 / 天鹅脚踏船",en:"Vltava River Cruise / Paddle Boats",img:"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Parn%C3%ADk_Vy%C5%A1ehrad_pod_Vy%C5%A1ehradem.jpg/800px-Parn%C3%ADk_Vy%C5%A1ehrad_pod_Vy%C5%A1ehradem.jpg",
+  desc:"水上看查理大桥与城堡天际线。一小时观光船从切赫桥码头出发；更自在的玩法：斯拉夫岛租天鹅脚踏船，黄昏对着城堡剪影漂着，氛围感极强。",
+  hours:"观光船10:00–20:00 · 脚踏船至日落",price:"观光船450–590CZK · 脚踏船300–500CZK/时",rate:"4.5",con:"码头有拉客船贩价格混乱——认准正规公司(Prague Boats)；观光船讲解一般",url:"https://www.prague-boats.cz/one-hour-river-cruise/"},
+ {zh:"高堡（备选）",en:"Vyšehrad",img:"",icon:"🏰",
+  desc:"伏尔塔瓦河畔悬崖古堡垒、布拉格神话发源地；高堡公墓长眠德沃夏克、斯美塔那。游客少本地人多，看河景的清净去处。",
+  hours:"园区24小时 · 教堂10:00–18:00",price:"园区+公墓免费 · 教堂160CZK",rate:"4.7",con:"离老城约3公里——1.5天行程优先级最低，航班晚才加插",url:"https://praha-vysehrad.cz/en/visit/"}
+]
+};
+
+/* ============ 渲染卡片 ============ */
+function stars(r){return r+"★"}
+/* 图片回退链：commons高清直出(企业网络可用) → Bing大图 → 占位图标 */
+function bingImg(q){return "https://tse2.mm.bing.net/th?q="+encodeURIComponent(q)+"&w=1200&h=750&c=7&rs=1&qlt=90";}
+function hiResImg(u,w){
+  const m=/\/commons\/thumb\/[0-9a-f]\/[0-9a-f]{2}\/([^\/]+)\//.exec(u||"");
+  return m?"https://commons.wikimedia.org/w/thumb.php?f="+m[1]+"&width="+(w||1000):(u||"");
+}
+window.imgErr=function(el){
+  if(el.src.indexOf("bing.net")<0&&el.dataset.fb){el.src=el.dataset.fb;return;}
+  el.outerHTML='<div class="noimg">'+(el.dataset.icon||"📷")+'</div>';
+};
+function imgHtml(a){
+  const fb=bingImg(a.en);
+  return '<img src="'+(a.img?hiResImg(a.img,1000):fb)+'" alt="" loading="lazy" data-fb="'+fb+'" data-icon="'+(a.icon||"📷")+'" onerror="imgErr(this)">';
+}
+document.querySelectorAll(".grid[data-city]").forEach(grid=>{
+  const items = DATA[grid.dataset.city]||[];
+  grid.innerHTML = items.map(a=>`
+    <div class="card">
+      ${imgHtml(a)}
+      <div class="card-body">
+        <div class="card-name">${a.zh}<span class="en">${a.en}</span></div>
+        <div class="badges">
+          <span class="badge rate">${stars(a.rate)}</span>
+          <span class="badge">🕐 ${a.hours}</span>
+          <span class="badge">💶 ${a.price}</span>
+        </div>
+        <div class="card-desc">${a.desc}</div>
+        <div class="card-con">⚠️ ${a.con}</div>
+        <div class="card-link"><a href="${a.url}" target="_blank">官网 / 购票 ↗</a> · <a href="https://www.google.com/maps/search/${encodeURIComponent(a.en)}" target="_blank">地图 ↗</a></div>
+      </div>
+    </div>`).join("");
+});
+
+/* ============ 地图 ============ */
+const map = L.map("map",{scrollWheelZoom:false}).setView([48.7,12.8],6);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap"}).addTo(map);
+const stops = [
+ {n:"法兰克福机场 Frankfurt (FRA)",c:[50.0379,8.5622],d:"8/1 落地 → 机场火车站直乘ICE去慕尼黑（3h20）"},
+ {n:"慕尼黑 Munich",c:[48.1351,11.5820],d:"8/1–8/3 · 2晚<br>玛丽恩广场 · 王宫 · 英国花园 · 啤酒馆"},
+ {n:"萨尔茨堡 Salzburg",c:[47.8095,13.0550],d:"8/3 半天 · 取租车<br>米拉贝尔花园 · 要塞 · 音乐节氛围"},
+ {n:"圣沃尔夫冈 St. Wolfgang",c:[47.7370,13.4480],d:"8/3–8/6 · 3晚基地<br>夏夫山火车 · 湖里游泳"},
+ {n:"哈尔施塔特 Hallstatt",c:[47.5622,13.6493],d:"8/4 赶早！8:30前到<br>明信片机位 · 达赫施泰因五指山在旁边"},
+ {n:"梅尔克修道院 Melk Abbey",c:[48.2274,15.3319],d:"8/6 顺路1.5小时<br>洛可可图书馆 · 多瑙河露台"},
+ {n:"维也纳 Vienna",c:[48.2082,16.3738],d:"8/6–8/8 · 2晚 · 到达即还车<br>美泉宫 · 《吻》 · 咖啡馆"},
+ {n:"布拉格 Prague (PRG)",c:[50.0755,14.4378],d:"8/8–8/9 · 1晚<br>城堡 · 查理大桥夜游 → 8/9 飞离"}
+];
+stops.forEach((s,i)=>{
+  L.marker(s.c).addTo(map).bindPopup(`<b>${i+1}. ${s.n}</b><br>${s.d}`);
+});
+const train="#2563eb", car="#d97706";
+L.polyline([stops[0].c,stops[1].c],{color:train,weight:4,dashArray:"8 6"}).addTo(map).bindPopup("🚄 ICE 3h20 · 特价€20–40");
+L.polyline([stops[1].c,stops[2].c],{color:train,weight:4,dashArray:"8 6"}).addTo(map).bindPopup("🚄 Railjet 1h30 · 特价€12–18");
+L.polyline([stops[2].c,stops[3].c,stops[4].c],{color:car,weight:4}).addTo(map).bindPopup("🚗 自驾湖区段 · B158风景路");
+L.polyline([stops[4].c,stops[5].c,stops[6].c],{color:car,weight:4}).addTo(map).bindPopup("🚗 哈尔施塔特→梅尔克→维也纳 · 约3.5h");
+L.polyline([stops[6].c,stops[7].c],{color:train,weight:4,dashArray:"8 6"}).addTo(map).bindPopup("🚄 Railjet 4h · 早鸟€15起");
+map.fitBounds(stops.map(s=>s.c),{padding:[36,36]});
+map.on("click",()=>map.scrollWheelZoom.enable());
+
+/* ============ 折叠行程 ============ */
+document.querySelectorAll(".day-head").forEach(h=>h.addEventListener("click",()=>h.parentElement.classList.toggle("open")));
+
+/* ============ 打包清单持久化 ============ */
+const boxes = document.querySelectorAll("#packlist input");
+try{
+  const saved = JSON.parse(localStorage.getItem("packlist")||"[]");
+  boxes.forEach((b,i)=>{ if(saved[i]){b.checked=true;b.parentElement.classList.add("done")} });
+}catch(e){}
+boxes.forEach((b,i)=>b.addEventListener("change",()=>{
+  b.parentElement.classList.toggle("done",b.checked);
+  try{localStorage.setItem("packlist",JSON.stringify([...boxes].map(x=>x.checked)))}catch(e){}
+}));
+
+/* ============ 导航高亮 ============ */
+const secs=[...document.querySelectorAll("section")], links=[...document.querySelectorAll("nav a")];
+const spy=new IntersectionObserver(es=>{
+  es.forEach(e=>{ if(e.isIntersecting){
+    links.forEach(l=>l.classList.toggle("active",l.getAttribute("href")==="#"+e.target.id));
+  }});
+},{rootMargin:"-30% 0px -60% 0px"});
+secs.forEach(s=>spy.observe(s));
+</script>
+</body>
+</html>

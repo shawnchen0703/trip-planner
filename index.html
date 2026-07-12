@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>旅行规划器 · 德奥捷 2026 | Interactive Trip Planner</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --bg:#f6f4ef; --card:#fff; --ink:#26302b; --muted:#6f6f6a;
+  --accent:#1a6b52; --accent-dk:#123f31; --accent2:#c0512f; --gold:#b8860b;
+  --train:#2563eb; --car:#d97706; --bus:#7c3aed;
+  --shadow:0 2px 10px rgba(0,0,0,.08); --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+button{font-family:inherit;cursor:pointer}
+
+.hero{position:relative;color:#fff;text-align:center;min-height:340px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(135deg,#123f31,#1a6b52 55%,#2e8b6e)}
+.hero .bg{position:absolute;inset:0;z-index:0}
+.hero .bg img{width:100%;height:100%;object-fit:cover;display:block}
+.hero .shade{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(8,22,16,.30) 0%,rgba(8,22,16,.45) 55%,rgba(8,22,16,.72) 100%)}
+.hero .inner{position:relative;z-index:2;padding:52px 20px 44px;max-width:900px}
+.hero .flags{font-size:28px;margin-bottom:4px;text-shadow:0 2px 10px rgba(0,0,0,.5)}
+.hero .region{font-size:clamp(30px,5.5vw,54px);font-weight:900;letter-spacing:6px;text-shadow:0 3px 18px rgba(0,0,0,.65);line-height:1.25}
+.hero .region-en{font-size:clamp(13px,1.6vw,17px);letter-spacing:3px;opacity:.92;margin-top:6px;text-transform:uppercase;text-shadow:0 1px 8px rgba(0,0,0,.6)}
+.hero .sub{opacity:.95;font-size:14px;margin-top:14px;text-shadow:0 1px 8px rgba(0,0,0,.7)}
+.hero .sub .pillh{display:inline-block;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:99px;padding:4px 14px;margin:3px;backdrop-filter:blur(4px)}
+nav{position:sticky;top:0;z-index:1100;background:rgba(255,255,255,.97);backdrop-filter:blur(8px);box-shadow:0 1px 8px rgba(0,0,0,.1);display:flex;overflow-x:auto;padding:0 10px}
+nav a{flex:0 0 auto;padding:13px 16px;font-size:14px;font-weight:600;color:#444;border-bottom:3px solid transparent;white-space:nowrap}
+nav a:hover{text-decoration:none;color:var(--accent)}
+nav a.active{color:var(--accent);border-bottom-color:var(--accent)}
+main{max-width:1250px;margin:0 auto;padding:26px 16px 60px}
+section{margin-bottom:56px;scroll-margin-top:66px}
+h2{font-size:24px;color:#173d2f;margin-bottom:4px}
+h2 .en{font-size:13px;color:var(--muted);font-weight:500;margin-left:8px}
+.sub{color:var(--muted);font-size:13.5px;margin-bottom:16px}
+
+details.alerts{background:#fff7ed;border:1px solid #fdba74;border-radius:var(--radius);padding:12px 18px;margin-bottom:26px}
+details.alerts summary{cursor:pointer;font-weight:700;color:#9a3412;font-size:14.5px}
+details.alerts li{font-size:13.5px;margin:8px 0 0 18px}
+
+/* Section 1 */
+.explorer{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);gap:16px;align-items:stretch}
+@media(max-width:900px){.explorer{grid-template-columns:1fr}}
+#map{height:560px;border-radius:var(--radius);box-shadow:var(--shadow);z-index:1}
+@media(max-width:900px){#map{height:400px}}
+.side{display:flex;flex-direction:column;gap:10px;max-height:560px}
+.citychips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1.5px solid #d8d4c8;background:#fff;border-radius:99px;padding:6px 13px;font-size:13px;font-weight:600;color:#444}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip.excluded{opacity:.55;border-style:dashed}
+.citycard{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden auto;flex:1;display:flex;flex-direction:column}
+.citycard .cover{position:relative;height:150px;background:linear-gradient(120deg,#2c5c49,#1a6b52);flex:0 0 auto}
+.citycard .cover img{width:100%;height:100%;object-fit:cover;display:block}
+.citycard .cover .ct{position:absolute;left:14px;bottom:10px;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.7)}
+.citycard .cover .ct b{font-size:21px}
+.citycard .cover .ct span{font-size:12.5px;display:block}
+.cc-body{padding:14px 16px 16px;font-size:13.5px}
+.cc-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.pill{background:#eef3f0;color:#33584a;border-radius:99px;padding:3px 11px;font-size:12.3px;white-space:nowrap}
+.pill.gold{background:#fdf3d7;color:#8a6508;font-weight:700}
+.pill.dist{background:#e8effc;color:#1e4bb8}
+.pill.off{background:#f3f0ea;color:#999}
+.cc-body h4{font-size:13px;color:var(--muted);margin:10px 0 4px;font-weight:600}
+.cc-top{display:flex;flex-direction:column;gap:5px}
+.cc-top .t{display:flex;justify-content:space-between;gap:8px;font-size:13px;background:#faf9f5;border-radius:8px;padding:6px 10px}
+.cc-top .t em{font-style:normal;color:var(--gold);font-weight:700;white-space:nowrap}
+.cc-btns{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}
+.btn{border:none;border-radius:10px;padding:9px 15px;font-size:13.5px;font-weight:700}
+.btn.pri{background:var(--accent);color:#fff}
+.btn.pri:hover{background:var(--accent-dk)}
+.btn.sec{background:#eef0ec;color:#333}
+.btn.sec:hover{background:#e2e6e0}
+.btn.warn{background:#fdf0ea;color:#9a3412}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.legend .line{display:inline-block;width:28px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.pin{background:var(--accent);color:#fff;border-radius:10px;padding:2px 8px;font-size:12px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,.4);white-space:nowrap;border:2px solid #fff}
+.pin.dim{background:#a9b8b0}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(20,30,25,.55);z-index:2000;display:none;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow-y:auto}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg);border-radius:16px;max-width:900px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4);overflow:hidden}
+.m-head{background:linear-gradient(135deg,#123f31,#1a6b52);color:#fff;padding:20px 24px;display:flex;justify-content:space-between;align-items:flex-start}
+.m-head b{font-size:22px}
+.m-head .en{opacity:.85;font-size:13px;display:block}
+.m-close{background:rgba(255,255,255,.15);border:none;color:#fff;font-size:19px;border-radius:9px;width:36px;height:36px}
+.m-tabs{display:flex;background:#fff;border-bottom:1px solid #e5e2d8;overflow-x:auto}
+.m-tabs button{flex:0 0 auto;border:none;background:none;padding:13px 18px;font-size:14px;font-weight:700;color:#666;border-bottom:3px solid transparent}
+.m-tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+.m-body{padding:18px 22px;max-height:62vh;overflow-y:auto}
+.att-row{display:flex;gap:13px;background:#fff;border-radius:12px;box-shadow:var(--shadow);padding:12px;margin-bottom:11px}
+.att-row img{width:110px;height:86px;object-fit:cover;border-radius:9px;flex:0 0 auto;background:#dfe8e3}
+.noimg{width:110px;height:86px;border-radius:9px;flex:0 0 auto;background:linear-gradient(120deg,#dfe8e3,#cfdcd4);display:flex;align-items:center;justify-content:center;font-size:26px}
+.att-row .ar-b{flex:1;min-width:0}
+.att-row .meta{display:flex;gap:6px;flex-wrap:wrap;margin:5px 0}
+.att-row p{font-size:13px;color:#444}
+.att-row .con{font-size:12.3px;color:#9a4a22;margin-top:4px}
+.att-row .lk{font-size:12.5px;margin-top:5px}
+.tier{margin-bottom:16px}
+.tier>b{font-size:14.5px;color:#173d2f}
+.hrow,.frow{background:#fff;border-radius:11px;box-shadow:var(--shadow);padding:11px 14px;margin-top:8px;font-size:13.5px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.hrow .price,.frow .price{color:var(--accent2);font-weight:700;white-space:nowrap}
+.subnote{font-size:12.5px;color:#666}
+.enin{color:#888;font-size:12px;font-weight:500}
+.m-body .note{background:#f0f7f4;border-left:4px solid var(--accent);border-radius:8px;padding:10px 13px;font-size:13.5px;margin-bottom:12px}
+.outfit li{margin:6px 0 0 18px;font-size:13.8px}
+
+/* Section 2 */
+.rank{display:flex;flex-direction:column;gap:12px}
+.rk{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;cursor:pointer}
+.rk .no{font-size:30px;font-weight:900;color:#d8d4c8;width:46px;text-align:center;flex:0 0 auto}
+.rk:nth-child(1) .no{color:var(--gold)}
+.rk:nth-child(2) .no{color:#9aa5b1}
+.rk:nth-child(3) .no{color:#b87748}
+.rk .info{flex:1;min-width:220px}
+.rk .info b{font-size:16.5px}
+.rk .info .en{color:var(--muted);font-size:12.5px;margin-left:6px}
+.rk .why{font-size:13px;color:#444;margin-top:4px}
+.rk .bar{height:8px;background:#eee9dd;border-radius:99px;margin-top:8px;overflow:hidden}
+.rk .bar i{display:block;height:100%;background:linear-gradient(90deg,#2e8b6e,#1a6b52);border-radius:99px}
+.rk .score{font-size:24px;font-weight:900;color:var(--accent);flex:0 0 auto}
+.rk .score small{display:block;font-size:11px;color:var(--muted);font-weight:500;text-align:center}
+.rk .inplan{font-size:11.5px;border-radius:99px;padding:2px 10px;background:#eef3f0;color:#33584a;font-weight:700}
+.rk .inplan.no{background:#f3f0ea;color:#999}
+
+/* Section 3 */
+.plan-grid{display:grid;grid-template-columns:minmax(300px,1fr) minmax(0,1.6fr);gap:18px;align-items:start}
+@media(max-width:950px){.plan-grid{grid-template-columns:1fr}}
+.controls{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+.controls h3{font-size:15px;color:#173d2f;margin:14px 0 8px}
+.controls h3:first-child{margin-top:0}
+.ctl-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:14px}
+.ctl-row input[type=date],.ctl-row input[type=number],.ctl-row select{padding:7px 10px;border:1.5px solid #d8d4c8;border-radius:9px;font-size:14px;font-family:inherit;background:#fff}
+.ctl-row input[type=number]{width:70px}
+.cityrow{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1.5px solid #e5e2d8;border-radius:11px;margin-top:7px;font-size:13.8px;background:#fff}
+.cityrow.off{opacity:.5;background:#f6f4ef}
+.cityrow input[type=checkbox]{width:17px;height:17px;accent-color:var(--accent)}
+.cityrow .nm{flex:1;font-weight:700}
+.cityrow .nm small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper button{width:26px;height:26px;border:1.5px solid #d8d4c8;background:#fff;border-radius:8px;font-size:15px;font-weight:800;line-height:1}
+.stepper button:hover{border-color:var(--accent);color:var(--accent)}
+.stepper .nv{min-width:38px;text-align:center;font-weight:800}
+.nights-status{font-size:13px;margin-top:10px;padding:8px 12px;border-radius:9px;background:#f0f7f4}
+.nights-status.bad{background:#fde8e8;color:#b91c1c;font-weight:700}
+.attpick{margin-top:8px}
+.attpick details{border:1.5px solid #e5e2d8;border-radius:11px;margin-top:7px;background:#fff}
+.attpick summary{padding:9px 12px;font-size:13.5px;font-weight:700;cursor:pointer}
+.attpick .apl{padding:0 12px 10px}
+.attpick label{display:flex;gap:8px;align-items:center;font-size:13px;padding:4px 0}
+.attpick label input{accent-color:var(--accent)}
+.attpick label .r{color:var(--gold);font-weight:700;margin-left:auto;white-space:nowrap;font-size:12px}
+.gen-btns{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap}
+
+.outp{min-width:0}
+.oday{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+.oday-h{display:flex;gap:12px;align-items:center;padding:11px 16px;background:#f8f7f2;border-bottom:1px dashed #e5e2d8}
+.oday-h .d{background:var(--accent);color:#fff;border-radius:9px;padding:4px 10px;text-align:center;flex:0 0 auto}
+.oday-h .d b{display:block;font-size:14px}
+.oday-h .d small{font-size:10.5px;opacity:.85}
+.oday-h .ttl{font-weight:700;font-size:14.5px}
+.oday-h .ttl small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.oday-b{padding:10px 16px 13px;font-size:13.8px}
+.oit{display:flex;gap:10px;padding:5px 0;align-items:baseline}
+.oit .ic{flex:0 0 22px;text-align:center}
+.oit .r{color:var(--gold);font-weight:700;font-size:12px;white-space:nowrap}
+.oit .warn{color:#b91c1c;font-size:12px;font-weight:700}
+.oleg{background:#e8effc;border-radius:9px;padding:8px 12px;margin:6px 0;font-size:13.3px}
+.ohotel{background:#fdf7ec;border-radius:9px;padding:8px 12px;margin-top:8px;font-size:13.3px}
+.osum{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;margin-bottom:14px;font-size:14px}
+.osum b.big{font-size:17px;color:#173d2f}
+.osum .tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.placeholder{background:#fff;border:2px dashed #d8d4c8;border-radius:var(--radius);padding:40px 20px;text-align:center;color:var(--muted);font-size:14px}
+.oit[draggable]{cursor:grab}
+.oit[draggable]:active{cursor:grabbing}
+.oday.dragover{outline:2.5px dashed var(--accent);outline-offset:-3px}
+.cklist label{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px dashed #eee9df;cursor:pointer;font-size:13.5px}
+.cklist label:last-child{border-bottom:none}
+.cklist input{accent-color:var(--accent)}
+.cklist label span{flex:1}
+.cklist label.done span{text-decoration:line-through;color:#aaa}
+.cklist em{font-style:normal;font-size:12px;color:var(--muted);white-space:nowrap}
+.cklist em.hot{color:#b91c1c;font-weight:700}
+.wx{color:#1e6091;font-weight:600}
+.oday-h .ttl{flex:1}
+.oday-h .dmap{border:1.5px solid #d8d4c8;background:#fff;border-radius:9px;padding:5px 10px;font-size:12.5px;flex:0 0 auto;white-space:nowrap}
+.oday-h .dmap:hover{border-color:var(--accent);color:var(--accent)}
+.oit .mv{border:1.5px solid #d8d4c8;background:#fff;border-radius:8px;font-size:13px;padding:2px 9px;flex:0 0 auto;color:#666;line-height:1.4}
+.oit .mv:hover{border-color:var(--accent2);color:var(--accent2)}
+.oit.moving{outline:2px dashed var(--accent2);outline-offset:2px;background:#fdf3ec;border-radius:8px}
+.movehint{position:sticky;bottom:12px;z-index:60;background:var(--accent2);color:#fff;padding:11px 16px;border-radius:12px;font-size:13.5px;box-shadow:0 6px 18px rgba(0,0,0,.3);display:none;text-align:center;margin-top:10px}
+.movehint.show{display:block}
+.dnum{background:#c0512f;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12.5px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+@media(max-width:700px){
+  .side{max-height:none}
+  .citycard{overflow:visible}
+  .hero .region{letter-spacing:2px}
+  .hero{min-height:280px}
+  .stepper button{width:34px;height:34px;font-size:17px}
+  .oit{flex-wrap:wrap}
+  .oit .r{margin-left:32px}
+  .m-body{max-height:70vh;padding:14px}
+  .att-row img,.noimg{width:88px;height:70px}
+  nav a{padding:13px 12px;font-size:13.5px}
+}
+
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--card)}
+.tblwrap{overflow-x:auto;border-radius:var(--radius);box-shadow:var(--shadow)}
+th{background:#173d2f;color:#fff;text-align:left;padding:10px 13px;font-size:12.5px;white-space:nowrap}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{background:#1f5240}
+td{padding:10px 13px;border-bottom:1px solid #eee9df;vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fbfaf6}
+.price{color:var(--accent2);font-weight:700;white-space:nowrap}
+td .en{font-size:11.5px;color:var(--muted);display:block}
+.gstar{color:var(--gold);font-weight:700;white-space:nowrap}
+.searchbox{width:100%;max-width:420px;padding:9px 14px;border:1.5px solid #d8d4c8;border-radius:11px;font-size:14px;font-family:inherit;margin-bottom:12px;background:#fff}
+
+#totop{position:fixed;right:18px;bottom:18px;z-index:1500;width:44px;height:44px;border-radius:50%;border:none;background:var(--accent);color:#fff;font-size:19px;box-shadow:0 4px 14px rgba(0,0,0,.3);display:none}
+#totop.show{display:block}
+
+footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 16px 40px}
+
+@media print{
+  nav,.hero,#explore,#ranking,#timetable,#allatts,details.alerts,.controls,.gen-btns,footer,#totop{display:none!important}
+  main{padding:0;max-width:100%}
+  .plan-grid{display:block}
+  .oday,.osum{box-shadow:none;border:1px solid #ccc;break-inside:avoid}
+  body{background:#fff}
+}
+</style>
+</head>
+<body>
+
+<div class="hero" id="hero">
+  <div class="bg" id="herobg"></div>
+  <div class="shade"></div>
+  <div class="inner">
+    <div class="flags" id="heroflags"></div>
+    <div class="region" id="heroregion"></div>
+    <div class="region-en" id="heroregionen"></div>
+    <div class="sub" id="herosub"></div>
+  </div>
+</div>
+
+<nav id="nav">
+  <a href="#explore" class="active">🗺️ 探索地图</a>
+  <a href="#ranking">🏆 目的地排行</a>
+  <a href="#planner">🛠️ 行程规划器</a>
+  <a href="#timetable">🚄 交通时刻参考</a>
+  <a href="#allatts">📋 景点总表</a>
+  <a href="trip-guide.html" target="_blank">📖 图文版攻略 ↗</a>
+</nav>
+
+<main>
+
+<details class="alerts">
+  <summary>⚠️ 2026 实况必读（出发前再扫一遍）</summary>
+  <ul id="alertlist"></ul>
+</details>
+
+<!-- ============ SECTION 1 ============ -->
+<section id="explore">
+  <h2>🗺️ 探索地图 <span class="en">点击图钉或城市名 → 右侧生成卡片 → 展开完整攻略</span></h2>
+  <p class="sub">绿色图钉=已在行程中 · 灰色图钉=候选目的地（可一键加入）· 选中城市后地图显示其景点分布 · 路线随你的选择实时重绘</p>
+  <div class="explorer">
+    <div>
+      <div id="map"></div>
+      <div class="legend">
+        <span><i class="line" style="background:var(--train)"></i>火车</span>
+        <span><i class="line" style="background:var(--car)"></i>自驾</span>
+        <span><i class="line" style="background:var(--bus)"></i>大巴</span>
+        <span>● 红点 = 景点（点击城市后显示）</span>
+      </div>
+    </div>
+    <div class="side">
+      <div class="citychips" id="chips"></div>
+      <div class="citycard" id="citycard"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 2 ============ -->
+<section id="ranking">
+  <h2>🏆 目的地排行 <span class="en">基于：朋友出行 · 快节奏 · 8月盛夏 · €100–180住宿档</span></h2>
+  <p class="sub">包含所有候选目的地（含未加入行程的）。推荐指数综合季节匹配、体验密度、口碑、性价比。点击任意一行跳到地图查看。</p>
+  <div class="rank" id="ranklist"></div>
+</section>
+
+<!-- ============ SECTION 3 ============ -->
+<section id="planner">
+  <h2>🛠️ 行程规划器 <span class="en">默认已载入系统推荐方案 · 改任何选项后点"生成行程"</span></h2>
+  <p class="sub">勾选城市（顺序自动按地理走廊排列，不走回头路）→ 调晚数 → 勾景点 → 挑预算 → 生成。未收录的城市间交通会按距离自动估算并给出谷歌导航链接。选择自动保存在本机。</p>
+  <div class="plan-grid">
+    <div class="controls">
+      <h3>① 基本参数</h3>
+      <div class="ctl-row">
+        出发 <input type="date" id="p-date" value="2026-08-01">
+        总天数 <input type="number" id="p-days" min="2" max="30" value="9">
+      </div>
+      <div class="ctl-row" style="margin-top:8px">
+        住宿预算
+        <select id="p-budget">
+          <option value="budget">经济 €60–110/晚</option>
+          <option value="comfort" selected>舒适 €100–180/晚</option>
+          <option value="luxury">高端 €250+/晚</option>
+        </select>
+      </div>
+      <h3>② 选择目的地 & 过夜数</h3>
+      <div id="cityrows"></div>
+      <div class="nights-status" id="nstatus"></div>
+      <h3>③ 勾选想去的景点</h3>
+      <div class="attpick" id="attpick"></div>
+      <div class="gen-btns">
+        <button class="btn pri" id="gen">⚡ 生成行程</button>
+        <button class="btn sec" id="reset">↺ 恢复系统推荐</button>
+        <button class="btn sec" id="copybtn">📋 复制为文本</button>
+        <button class="btn sec" id="sharebtn">🔗 分享链接</button>
+        <button class="btn sec" id="printbtn">🖨️ 打印/PDF</button>
+      </div>
+    </div>
+    <div class="outp">
+      <div id="output">
+        <div class="placeholder">点击左侧「⚡ 生成行程」开始 —— 默认参数即为系统推荐的 9 日方案</div>
+      </div>
+      <div class="movehint" id="movehint"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 4 ============ -->
+<section id="timetable">
+  <h2>🚄 交通时刻参考 <span class="en">典型班次频率 · 出行前以官网实时时刻为准</span></h2>
+  <div class="tblwrap"><table id="tt"></table></div>
+</section>
+
+<!-- ============ SECTION 5 ============ -->
+<section id="allatts">
+  <h2>📋 全部景点总表 <span class="en">搜索 + 点表头排序 · 中英双语可直接复制</span></h2>
+  <input class="searchbox" id="attsearch" type="text" placeholder="🔍 搜索景点 / 城市（中英文都行，如：城堡、lake、慕尼黑…）">
+  <div class="tblwrap"><table id="master"></table></div>
+</section>
+
+</main>
+
+<div class="modal-bg" id="modalbg">
+  <div class="modal">
+    <div class="m-head">
+      <div><b id="m-title"></b><span class="en" id="m-en"></span></div>
+      <button class="m-close" id="m-close">✕</button>
+    </div>
+    <div class="m-tabs" id="m-tabs"></div>
+    <div class="m-body" id="m-body"></div>
+  </div>
+</div>
+
+<button id="totop" title="回到顶部">↑</button>
+
+<footer>交互式旅行规划器 · 数据核实于 2026 年 7 月 · 价格与开放时间以官网为准 · 图片 Wikimedia/Bing · 地图 © OpenStreetMap<br>换个目的地？把新数据交给 Claude 按 TRIP 结构生成即可，引擎零改动</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ================================================================
+   数据层 TRIP —— 换目的地只需替换这个对象（结构不变，引擎通用）
+   cities 按地理走廊顺序排列 = 不走回头路的顺序
+   ================================================================ */
+const TRIP = {
+
+/* ---- 页头：地区名 + 背景大图（换目的地改这里即换头图）---- */
+meta: {
+  flags: "🇩🇪 🇦🇹 🇨🇿",
+  region: "德国 · 奥地利 · 捷克",
+  regionEn: "Germany · Austria · Czechia",
+  sub: ["🧭 交互式旅行规划器", "11 个目的地数据库", "当前行程 2026.8.1 – 8.9"],
+  heroImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f8/Schloss_Neuschwanstein_2013.jpg/1600px-Schloss_Neuschwanstein_2013.jpg",
+  heroQuery: "Neuschwanstein Castle Bavaria alps 4k"
+},
+
+alerts: [
+  "<b>哈尔施塔特盐矿+Skywalk 关闭至2026年9月</b>——替代：达赫施泰因冰洞+五指台、高萨湖；或国王湖旁的贝希特斯加登盐矿",
+  "<b>新天鹅堡门票必须官网提前订</b>（旺季提前数周放票即抢），现场基本无票——ticket-center-hohenschwangau.de",
+  "<b>8/2是周日</b>：慕尼黑谷物市场关门；<b>8/8是周六</b>：布拉格犹太博物馆闭馆（规划器已自动检查星期冲突）",
+  "<b>美泉宫8月必须提前2–4周订时段票</b>（schoenbrunn.at），现场排队1小时+",
+  "<b>维也纳歌剧院7–8月暑休</b>——替代：€15内部导览 + 市政厅广场免费露天音乐电影节（每晚）",
+  "<b>萨尔茨堡音乐节 7/17–8/30</b>：Kapitelplatz广场免费歌剧转播大屏；周边酒店涨价30–50%尽早订",
+  "<b>租车驾照</b>：加拿大驾照需IDP（CAA办理约$25）；中国驾照需公证翻译件且部分租车行不收",
+  "<b>哈尔施塔特停车先到先得</b>：8月务必8:30前抵达；国王湖同理——首班船前到码头",
+  "<b>维也纳2026年取消48/72h交通票</b>→买24h票€9.70；到维也纳当天立即还车（市中心停车€25–50/天）",
+  "<b>火车早鸟票提前2–3个月放票</b>：维也纳→布拉格€15起（务必加订座）；FRA→慕尼黑ICE €20起",
+  "<b>布拉格</b>：老城广场正面餐厅贵2–3倍；绝不在街头换汇点换钱——ATM取克朗或刷卡，拒绝DCC欧元计价"
+],
+
+cities: [
+{ id:"fra", zh:"法兰克福", en:"Frankfurt", country:"德国", flag:"🇩🇪", c:[50.1109,8.6821],
+  r:3.9, rec:40, nights:0, tagline:"欧陆门户 · 落地即走也不亏",
+  bestFor:"转机门户，顺路看半天足够",
+  img:"",
+  weather:{t:"25°/14°", rain:"35%", note:"温和，适合落地缓冲"},
+  outfit:["舒适步行鞋（倒时差走路醒神）","薄外套"],
+  transport:"机场长途火车站(Fernbahnhof)在T1旁，出关步行10–15分钟；市区S-Bahn 11分钟直达",
+  noBacktrack:"机场→(寄存行李)→罗马广场→铁桥→美因塔→回机场火车站，环线约3小时",
+  atts:[
+    {zh:"罗马广场", en:"Römerberg", r:4.5, rec:3, h:1, price:"免费", c:[50.1106,8.6820], desc:"法兰克福老城心脏，木筋屋建筑群与市政厅，二战后重建的中世纪风貌。", con:"范围不大，30–60分钟足够"},
+    {zh:"美因塔观景台", en:"Main Tower", r:4.6, rec:3, h:1, price:"€9", c:[50.1125,8.6720], desc:"200米高空俯瞰'美因哈顿'天际线，欧元区金融心脏的最佳视角。", con:"大风天关闭，上塔前看官网"},
+    {zh:"铁桥", en:"Eiserner Steg", r:4.5, rec:2, h:0.5, price:"免费", c:[50.1078,8.6835], desc:"跨美因河的人行铁桥，挂满同心锁，拍天际线的经典机位。", con:"就是一座桥，顺路即可"}
+  ],
+  hotels:{
+    budget:[{n:"a&o Frankfurt Hauptbahnhof", p:"€60–90", note:"车站旁连锁青旅酒店，转机一晚够用"}],
+    comfort:[{n:"Motel One Frankfurt-Römer", p:"€110–150", note:"老城旁设计连锁，步行到罗马广场5分钟"}],
+    luxury:[{n:"Steigenberger Icon Frankfurter Hof", p:"€300+", note:"1876年地标老牌五星"}]
+  },
+  food:[
+    {zh:"小市场厅", en:"Kleinmarkthalle", r:4.5, p:"€8–15", summary:"本地人的室内菜市场，Schreiber香肠摊常年排队"},
+    {zh:"瓦格纳苹果酒馆", en:"Apfelwein Wagner", r:4.3, p:"€15–25", summary:"萨克森豪森区百年苹果酒馆，配Handkäs奶酪与烤猪肋"}
+  ]
+},
+{ id:"hd", zh:"海德堡", en:"Heidelberg", country:"德国", flag:"🇩🇪", c:[49.3988,8.6724],
+  r:4.6, rec:82, nights:1, tagline:"内卡河畔的浪漫大学城",
+  bestFor:"法兰克福进出时的完美第一站：城堡废墟+哲学家小径+德国最老大学",
+  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Heidelberg-2726936.jpg/960px-Heidelberg-2726936.jpg",
+  weather:{t:"26°/15°", rain:"35%", note:"德国最温暖的城市之一，夏夜河边很舒服"},
+  outfit:["舒适步行鞋（哲学家小径上坡）","防晒"],
+  transport:"火车站→老城乘公交/电车约10分钟；老城全步行。城堡乘Bergbahn登山缆车",
+  noBacktrack:"火车站→俾斯麦广场→主街走到头→缆车上城堡→下山过老桥→哲学家小径看全景→返程",
+  atts:[
+    {zh:"海德堡城堡", en:"Heidelberg Castle (Schloss Heidelberg)", r:4.6, rec:5, h:2, price:"€9(含缆车)", c:[49.4106,8.7153], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Heidelberg-2726936.jpg/960px-Heidelberg-2726936.jpg", url:"https://www.schloss-heidelberg.de/en/", desc:"欧洲最著名的红砂岩城堡废墟，俯瞰老城与内卡河谷；地窖藏世界最大葡萄酒桶（22万升）。歌德说'在这里被摧毁的，正是它最美的部分'。", con:"内部部分区域随导览；缆车旺季排队"},
+    {zh:"老桥", en:"Old Bridge (Alte Brücke)", r:4.6, rec:4, h:0.5, price:"免费", c:[49.4136,8.7090], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Alte_Br%C3%BCcke_Heidelberg.JPG/960px-Alte_Br%C3%BCcke_Heidelberg.JPG", url:"https://www.heidelberg-marketing.de/en/", desc:"1788年的九孔石桥，桥头猴子铜像（摸镜子带财运）；桥上回望城堡是经典构图。", con:"就是一座桥，拍照10分钟"},
+    {zh:"哲学家小径", en:"Philosophers' Walk (Philosophenweg)", r:4.6, rec:4, h:1.5, price:"免费", c:[49.4172,8.7059], desc:"对岸山腰的小径，黑格尔、雅斯贝尔斯散步思考之地——拍城堡+老城+老桥同框全景的最佳机位。", con:"蛇径(Schlangenweg)上坡陡，穿好走的鞋"},
+    {zh:"老城主街", en:"Hauptstraße", r:4.4, rec:3, h:1, price:"免费", c:[49.4110,8.7080], desc:"德国最长步行街（1.6公里），大学广场、圣灵教堂、骑士之家串成一线。", con:"商业化较重，店铺与别处大同小异"},
+    {zh:"学生监狱", en:"Studentenkarzer (Student Prison)", r:4.3, rec:2, h:0.5, price:"€4", c:[49.4106,8.7060], url:"https://www.uni-heidelberg.de/en/institutions/university-museum", desc:"1914年前关押'淘气'大学生的房间，满墙涂鸦剪影——被关过反而是荣誉。", con:"很小，15–20分钟看完"}
+  ],
+  hotels:{
+    budget:[{n:"Steffis Hostel Heidelberg", p:"€60–90", note:"车站旁高分青旅，厨房可用"}],
+    comfort:[{n:"Hotel Villa Marstall", p:"€130–170", note:"内卡河畔老城内，安静优雅"},{n:"NH Heidelberg", p:"€110–150", note:"连锁可靠，近俾斯麦广场"}],
+    luxury:[{n:"Der Europäische Hof Heidelberg", p:"€280+", note:"家族经营五星，老城门口"}]
+  },
+  food:[
+    {zh:"施尼茨酒馆", en:"Schnitzelbank Heidelberg", r:4.5, p:"€15–25", summary:"作坊改建的迷你木酒馆，拼桌喝本地酒吃施尼茨"},
+    {zh:"红公牛酒馆", en:"Zum Roten Ochsen", r:4.4, p:"€20–35", summary:"1703年学生酒馆，马克·吐温到访过，墙上全是历史"},
+    {zh:"克诺泽尔咖啡馆", en:"Café Knösel", r:4.2, p:"€8–15", summary:"1863年老店，'学生之吻'巧克力发源地"}
+  ]
+},
+{ id:"rot", zh:"罗滕堡", en:"Rothenburg ob der Tauber", country:"德国", flag:"🇩🇪", c:[49.3779,10.1866],
+  r:4.6, rec:78, nights:1, tagline:"中世纪童话小镇 · 罗曼蒂克大道明珠",
+  bestFor:"德国保存最完整的中世纪城墙小镇；过夜后清晨/夜巡人时段才是精髓",
+  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Rothenburg_BW_4.JPG/960px-Rothenburg_BW_4.JPG",
+  weather:{t:"25°/13°", rain:"40%", note:"清晨薄雾中的老城最出片"},
+  outfit:["舒适步行鞋（石板路+城墙木梯）","薄外套（夜巡）"],
+  transport:"全城步行10分钟横穿；自驾停城墙外P1–P5停车场（€5–8/天）",
+  noBacktrack:"市集广场→普勒恩莱茵→城堡花园看河谷→沿城墙步道走半圈→晚上8点夜巡人之旅收尾",
+  atts:[
+    {zh:"普勒恩莱茵小广场", en:"Plönlein", r:4.7, rec:5, h:0.5, price:"免费", c:[49.3757,10.1793], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Rothenburg_BW_4.JPG/960px-Rothenburg_BW_4.JPG", url:"https://www.rothenburg-tourismus.de/en/", desc:"黄色木筋屋+两座城门塔的岔路口——德国最上镜的中世纪街角，迪士尼《匹诺曹》取景灵感。", con:"白天旅行团扎堆，清晨或傍晚来拍"},
+    {zh:"夜巡人之旅", en:"Night Watchman Tour", r:4.8, rec:4, h:1, price:"€9", c:[49.3776,10.1799], slot:"evening", url:"https://www.nightwatchman.de/", desc:"披黑斗篷提戟的'夜巡人'带你走中世纪暗夜老城，段子与历史齐飞——全德国最有名的城市导览，英文团每晚8点市集广场出发。", con:"英文讲解，需要一定听力；冬季缩减"},
+    {zh:"城墙步道", en:"Town Wall Walk (Turmweg)", r:4.6, rec:4, h:1, price:"免费", c:[49.3777,10.1830], desc:"2.5公里带顶木廊城墙可以走上去环城，从垛口俯瞰红屋顶与塔楼群。", con:"木梯较陡，部分路段窄"},
+    {zh:"市政厅塔楼", en:"Town Hall Tower (Rathausturm)", r:4.5, rec:3, h:0.5, price:"€4.5", c:[49.3776,10.1799], desc:"220级越来越窄的台阶登上60米塔顶，全城红屋顶+陶伯河谷360°。", con:"顶部平台极窄，恐高慎入"},
+    {zh:"中世纪犯罪博物馆", en:"Medieval Crime Museum", r:4.4, rec:3, h:1, price:"€9.5", c:[49.3757,10.1780], url:"https://www.kriminalmuseum.eu/en/", desc:"欧洲最重要的法制史收藏：耻辱面具、铁处女、行刑刑具——猎奇与历史兼备。", con:"内容较暗黑，未必适合所有人"},
+    {zh:"圣雅各教堂", en:"St. Jacob's Church", r:4.5, rec:2, h:0.5, price:"€3.5", c:[49.3785,10.1786], desc:"里门施奈德的《圣血祭坛》木雕杰作，朝圣之路德国段的重要一站。", con:"对木雕无感的话可跳过"}
+  ],
+  hotels:{
+    budget:[{n:"Gästehaus Raidel", p:"€70–95", note:"600年老屋家庭旅馆，古董家具"}],
+    comfort:[{n:"Hotel Reichsküchenmeister", p:"€110–150", note:"教堂旁老牌酒店，餐厅也不错"},{n:"BurgGartenpalais", p:"€130–170", note:"城堡花园旁巴洛克宅邸"}],
+    luxury:[{n:"Hotel Eisenhut", p:"€180–260", note:"四座贵族宅邸打通的百年名店"}]
+  },
+  food:[
+    {zh:"地狱酒馆", en:"Zur Höll (The Hell)", r:4.5, p:"€20–35", summary:"全城最老建筑(900年)里的中世纪酒馆，烛光下吃法兰肯菜"},
+    {zh:"雪球点心", en:"Schneeball (Café Diller等)", r:4.0, p:"€3–5", summary:"罗滕堡名产油炸面球——名气大于味道，尝一个拍照即可"},
+    {zh:"布茨老店", en:"Gasthof Butz", r:4.3, p:"€15–25", summary:"本地人也去的家常法兰肯菜，价格实在"}
+  ]
+},
+{ id:"fus", zh:"菲森·新天鹅堡", en:"Füssen & Neuschwanstein", country:"德国", flag:"🇩🇪", c:[47.5710,10.6980],
+  r:4.7, rec:88, nights:1, tagline:"迪士尼城堡原型 · 罗曼蒂克大道终点",
+  bestFor:"德国旅行的名片景点；一早一晚避开人潮，玛丽恩桥机位不能错过",
+  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f8/Schloss_Neuschwanstein_2013.jpg/960px-Schloss_Neuschwanstein_2013.jpg",
+  weather:{t:"22°/11°", rain:"50%", note:"阿尔卑斯山脚多阵雨，云雾中的城堡别有味道"},
+  outfit:["防雨外套","舒适登山鞋（上城堡30–40分钟坡路）"],
+  transport:"菲森火车站→城堡山下乘73/78路公交10分钟；山下到城堡步行35分钟或接驳巴士/马车",
+  noBacktrack:"一早售票中心取票→高天鹅堡(可选)→步行上山→新天鹅堡内部导览→玛丽恩桥拍全景→下山阿尔卑湖边歇脚→傍晚回菲森老城",
+  atts:[
+    {zh:"新天鹅堡", en:"Neuschwanstein Castle", r:4.7, rec:5, h:3, price:"€21(线上订)", c:[47.5576,10.7498], slot:"morning", pre:{d:45,label:"抢新天鹅堡官网时段票（放票即抢）"}, img:"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f8/Schloss_Neuschwanstein_2013.jpg/960px-Schloss_Neuschwanstein_2013.jpg", url:"https://www.ticket-center-hohenschwangau.de/", desc:"路德维希二世的梦幻城堡、迪士尼城堡原型，瓦格纳歌剧场景铺满内厅。2025年列入世界遗产。", con:"⚠️必须官网提前订时段票（旺季提前数周）；内部导览仅35分钟且禁拍"},
+    {zh:"玛丽恩桥", en:"Marienbrücke (Mary's Bridge)", r:4.7, rec:5, h:0.5, price:"免费", c:[47.5560,10.7530], desc:"横跨波拉特峡谷的铁桥——拍新天鹅堡全景的唯一正确位置，明信片都从这里拍。", con:"桥上人挤人+恐高慎入；冬季或大风关闭"},
+    {zh:"高天鹅堡", en:"Hohenschwangau Castle", r:4.5, rec:3, h:1.5, price:"€21", c:[47.5557,10.7365], url:"https://www.hohenschwangau.de/en/", desc:"路德维希二世长大的黄色城堡，比新天鹅堡更有'人住过'的温度。", con:"时间紧就只看外观，优先新天鹅堡"},
+    {zh:"阿尔卑湖", en:"Alpsee", r:4.7, rec:3, h:1, price:"免费", c:[47.5510,10.7280], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Aerial_image_of_the_Alpsee_%28view_from_the_southwest%29.jpg/960px-Aerial_image_of_the_Alpsee_%28view_from_the_southwest%29.jpg", desc:"《天鹅湖》灵感来源的高山湖，环湖步道+可以游泳，城堡人潮后的降温净土。", con:"水温偏凉；环湖一整圈要2小时"},
+    {zh:"菲森老城", en:"Füssen Old Town", r:4.4, rec:2, h:1, price:"免费", c:[47.5710,10.6980], desc:"巴伐利亚色彩的小城+莱希河瀑布，罗曼蒂克大道的官方终点牌坊在此。", con:"店铺关得早，晚上比较安静"}
+  ],
+  hotels:{
+    budget:[{n:"Old Kings Design Hostel", p:"€65–95", note:"菲森老城内设计青旅"}],
+    comfort:[{n:"Hotel Sonne Füssen", p:"€130–175", note:"老城中心四星，设计感强"},{n:"Villa Toscana", p:"€110–150", note:"家庭经营，车站步行可达"}],
+    luxury:[{n:"AMERON Neuschwanstein Alpsee Resort", p:"€280+", note:"就在城堡山脚阿尔卑湖畔，出门即售票中心"}]
+  },
+  food:[
+    {zh:"骑士之屋", en:"Restaurant Ritterstub'n", r:4.4, p:"€15–25", summary:"菲森老城骑士主题巴伐利亚菜，份大实惠"},
+    {zh:"梭子鱼餐馆", en:"Zum Hechten", r:4.3, p:"€18–30", summary:"1516年老店，烤猪肘和阿尔高奶酪面疙瘩(Käsespätzle)"},
+    {zh:"城堡山下小馆", en:"Alpenrose am See", r:4.3, p:"€20–35", summary:"阿尔卑湖畔湖景咖啡+蛋糕，等导览时段的好去处"}
+  ]
+},
+{ id:"muc", zh:"慕尼黑", en:"Munich", country:"德国", flag:"🇩🇪", c:[48.1351,11.5820],
+  r:4.6, rec:86, nights:2, tagline:"巴伐利亚啤酒之都 · 王宫与城市冲浪",
+  bestFor:"经典德式体验：啤酒馆文化 + 王室宫殿",
+  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Rathaus_and_Marienplatz_from_Peterskirche_-_August_2006.jpg/800px-Rathaus_and_Marienplatz_from_Peterskirche_-_August_2006.jpg",
+  weather:{t:"24°/13°", rain:"40–50%", note:"午后偶雷阵雨，啤酒花园晚上转凉"},
+  outfit:["白天短袖+薄外套","防雨折叠伞","啤酒花园夜坐加件长袖"],
+  transport:"老城核心全步行；英国花园U3/U6，宁芬堡Tram17，BMW世界U3。团体天票€18.60(最多5人)最划算",
+  noBacktrack:"车站→玛丽恩广场→圣母教堂→王宫→皇家啤酒馆→(U)英国花园→中国塔，一条线不回头",
+  atts:[
+    {zh:"玛丽恩广场", en:"Marienplatz", r:4.7, rec:5, h:1, price:"免费·塔楼€6.50", c:[48.1374,11.5755], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Rathaus_and_Marienplatz_from_Peterskirche_-_August_2006.jpg/800px-Rathaus_and_Marienplatz_from_Peterskirche_-_August_2006.jpg", url:"https://www.muenchen.de/en/sights/attractions/marienplatz", desc:"老城心脏：新市政厅+木偶报时钟（11/12/17点表演），所有步行游的起点。", con:"木偶钟表演节奏慢，别抱过高期待"},
+    {zh:"英国花园", en:"English Garden (Englischer Garten)", r:4.7, rec:5, h:2, price:"免费", c:[48.1500,11.5917], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Aerial_image_of_Englischer_Garten_in_Munich_%28view_from_the_southwest%29.jpg/800px-Aerial_image_of_Englischer_Garten_in_Munich_%28view_from_the_southwest%29.jpg", url:"https://www.muenchen.de/en/sights/attractions/english-garden", desc:"世界最大城市公园之一：Eisbach河城市冲浪（免费、独一份）+中国塔啤酒花园7000座。", con:"极大容易走断腿；雨天体验打折"},
+    {zh:"慕尼黑王宫", en:"Munich Residenz", r:4.6, rec:4, h:1.5, price:"€10·联票€15", c:[48.1417,11.5797], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Aerial_image_of_Munich_Residenz.jpg/800px-Aerial_image_of_Munich_Residenz.jpg", url:"https://www.residenz-muenchen.de/englisch/tourist/index.htm", desc:"德国最大城市宫殿：130+展厅、洛可可祖先画廊、金碧辉煌古董厅+珍宝馆。", con:"动线极长——只走90分钟精华路线"},
+    {zh:"皇家啤酒馆", en:"Hofbräuhaus", r:4.4, rec:4, h:1.5, price:"啤酒€10–11/升", c:[48.1376,11.5799], slot:"evening", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Hofbrauhaus.JPG/800px-Hofbrauhaus.JPG", url:"https://www.hofbraeuhaus.de/en/", desc:"1589年世界最著名啤酒馆：铜管乐队、长桌拼桌、举杯合唱的氛围全球仅此一家。", con:"全是游客极吵；菜平庸——为气氛去"},
+    {zh:"谷物市场", en:"Viktualienmarkt", r:4.5, rec:4, h:1, price:"小吃€10–20", c:[48.1352,11.5764], closed:[0], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Viktualienmarkt_2016.jpg/800px-Viktualienmarkt_2016.jpg", url:"https://www.muenchen.de/en/sights/attractions/viktualienmarkt", desc:"1807年露天食品市场140+摊位，站着吃Obazda奶酪配碱水结最地道。", con:"周日关门！摊位有游客加成价"},
+    {zh:"圣母教堂", en:"Frauenkirche", r:4.6, rec:3, h:0.5, price:"免费·登塔€7.50", c:[48.1386,11.5736], url:"https://www.muenchner-dom.de/", desc:"99米洋葱顶双塔=慕尼黑天际线，登南塔晴天可远眺阿尔卑斯。", con:"登塔票只能现场买，旺季排队"},
+    {zh:"宁芬堡宫", en:"Nymphenburg Palace", r:4.6, rec:3, h:2.5, price:"€8–15·花园免费", c:[48.1583,11.5033], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Image-Schloss_Nymphenburg_Munich_CC_edit3.jpg/800px-Image-Schloss_Nymphenburg_Munich_CC_edit3.jpg", url:"https://www.schloss-nymphenburg.de/englisch/palace/index.htm", desc:"王室夏宫：700米巴洛克立面+天鹅湖明信片画面+美人画廊，游客远少于市中心。", con:"在西北郊，Tram17往返约80分钟"},
+    {zh:"宝马世界", en:"BMW Welt & Museum", r:4.5, rec:2, h:2, price:"Welt免费·博物馆€17", c:[48.1771,11.5560], url:"https://www.bmw-welt.com/en/index.html", desc:"未来主义双子建筑：免费展厅看最新车型+劳斯莱斯，博物馆讲百年品牌史。", con:"非车迷€17偏贵；在城北不顺路"}
+  ],
+  hotels:{
+    budget:[{n:"Wombat's City Hostel Munich", p:"€70–100(双人间)", note:"车站旁高分青旅，公共空间大适合朋友出行"},{n:"ibis München City", p:"€80–110", note:"标准连锁，干净可靠"}],
+    comfort:[{n:"Motel One München-Hauptbahnhof", p:"€120–150", note:"车站2分钟，设计感强性价比高"},{n:"Eden Hotel Wolff", p:"€150–180", note:"四星正对车站北口，隔音好早餐佳"},{n:"Hotel Mio by AMANO", p:"€130–170", note:"老城内5分钟到玛丽恩广场，屋顶酒吧"}],
+    luxury:[{n:"Bayerischer Hof", p:"€450+", note:"1841年慕尼黑社交中枢，屋顶泳池看双塔"},{n:"Mandarin Oriental Munich", p:"€600+", note:"老城静巷里的极致服务"}]
+  },
+  food:[
+    {zh:"奥古斯丁酿造间", en:"Augustiner Bräustuben", r:4.5, p:"€15–25", summary:"公认全城最好吃、性价比最高的烤猪肘（啤酒厂马厩改建）"},
+    {zh:"奥古斯丁地窖", en:"Augustiner-Keller", r:4.5, p:"€20–35", summary:"1328年老厂传奇啤酒花园5000座，木桶直出Edelstoff"},
+    {zh:"皇家啤酒馆", en:"Hofbräuhaus", r:4.4, p:"€25–35", summary:"为气氛而去：乐队+一升啤酒+烤猪肘"},
+    {zh:"Au区乡村酒馆", en:"Wirtshaus in der Au", r:4.5, p:"€25–40", summary:"1901年老店，慕尼黑团子(Knödel)之王"},
+    {zh:"施耐德白啤坊", en:"Schneider Bräuhaus", r:4.4, p:"€20–30", summary:"白啤权威+白香肠早餐（传统只卖到中午）"}
+  ]
+},
+{ id:"kon", zh:"国王湖·贝希特斯加登", en:"Königssee & Berchtesgaden", country:"德国", flag:"🇩🇪", c:[47.6295,13.0020],
+  r:4.8, rec:87, nights:1, tagline:"德国最深最清的翡翠湖 · 峡湾式绝景",
+  bestFor:"首班电动船进峡湾+上湖徒步是德国自然景观天花板；离萨尔茨堡仅30分钟",
+  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/K%C3%B6nigsee_in_Bayern.jpg/960px-K%C3%B6nigsee_in_Bayern.jpg",
+  weather:{t:"21°/10°", rain:"55%", note:"山区天气多变，湖水常年14–19°C偏凉"},
+  outfit:["防雨外套","徒步鞋（上湖步道）","薄抓绒（船上风凉）"],
+  transport:"自驾最方便（湖区大停车场€6–8/天）；或贝希特斯加登火车站乘841/842公交15分钟到码头",
+  noBacktrack:"一早首班船→圣巴多罗买教堂→续船到Salet→步行上湖Obersee→原路船返→下午鹰巢或盐矿→傍晚拉姆绍教堂",
+  atts:[
+    {zh:"国王湖游船+圣巴多罗买教堂", en:"Königssee Boat & St. Bartholomew's Church", r:4.8, rec:5, h:4, price:"往返船票€25", c:[47.5525,12.9720], slot:"morning", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Die_Kirche_von_St._Bartholom%C3%A4_am_K%C3%B6nigssee..jpg/960px-Die_Kirche_von_St._Bartholom%C3%A4_am_K%C3%B6nigssee..jpg", url:"https://www.seenschifffahrt.de/en/koenigssee/", desc:"电动船静静滑进两岸千米峭壁的峡湾，船长停船吹小号听回声；红顶洋葱教堂+翡翠湖水是德国风景照的封面担当。", con:"旺季9点后排队1小时+——务必赶首班船(8:00前后)"},
+    {zh:"上湖", en:"Obersee & Röthbach Waterfall", r:4.9, rec:5, h:2, price:"含在到Salet的船票", c:[47.5290,13.0290], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/K%C3%B6nigsee_in_Bayern.jpg/960px-K%C3%B6nigsee_in_Bayern.jpg", desc:"船到Salet再步行15分钟——静得像镜面的高山湖+德国最高瀑布(470m)，很多人说这里比国王湖本体更仙。", con:"看好末班船时间！错过要等救援船"},
+    {zh:"鹰巢", en:"Eagle's Nest (Kehlsteinhaus)", r:4.6, rec:3, h:3, price:"巴士+电梯往返€32.60", c:[47.6112,13.0417], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/4_Kehlsteinhaus_Orl%C3%AD_hn%C3%ADzdo_2026.jpg/960px-4_Kehlsteinhaus_Orl%C3%AD_hn%C3%ADzdo_2026.jpg", url:"https://www.kehlsteinhaus.de/english/", desc:"1834米山脊上的历史建筑（现为餐厅+观景台），特制山地巴士+黄铜电梯上顶，阿尔卑斯全景震撼。", con:"仅5–10月开放；多云天白花钱，出发前看山顶摄像头"},
+    {zh:"贝希特斯加登盐矿", en:"Berchtesgaden Salt Mine (Salzbergwerk)", r:4.5, rec:3, h:1.5, price:"€25", c:[47.6350,13.0060], url:"https://www.salzbergwerk.de/english.html", desc:"穿矿工服坐小火车进山，两条木滑梯+地下盐湖泛舟——哈尔施塔特盐矿关闭期间的完美替代。", con:"旺季建议提前线上订时段"},
+    {zh:"拉姆绍教堂", en:"Ramsau Church (St. Sebastian)", r:4.7, rec:2, h:0.5, price:"免费", c:[47.6089,12.8983], desc:"小溪木桥+雪山背景的白色小教堂，德国明信片常客，顺路5分钟停车打卡。", con:"就是一个机位，拍完即走"}
+  ],
+  hotels:{
+    budget:[{n:"Alpensport-Hotel Seimler", p:"€90–120", note:"贝希特斯加登镇边，停车免费"}],
+    comfort:[{n:"Hotel Edelweiss Berchtesgaden", p:"€150–185", note:"镇中心四星，屋顶泳池看群山"},{n:"Alm- & Wellnesshotel Alpenhof", p:"€130–170", note:"近国王湖码头，含Spa"}],
+    luxury:[{n:"Kempinski Hotel Berchtesgaden", p:"€350+", note:"山巅五星，无边泳池对着瓦茨曼峰"}]
+  },
+  food:[
+    {zh:"贝希特斯加登啤酒坊", en:"Bräustüberl Berchtesgaden", r:4.4, p:"€15–25", summary:"本地啤酒厂大排档，烤猪肘配Hofbräu Berchtesgaden"},
+    {zh:"回声小馆", en:"Echostüberl (Königssee)", r:4.4, p:"€15–25", summary:"码头附近吃湖鳟鱼(Forelle)，排队前先来份"},
+    {zh:"圣巴多罗买湖畔馆", en:"Fischerei St. Bartholomä", r:4.3, p:"€12–20", summary:"教堂旁的烟熏鳟鱼小屋，就着湖景啃鱼"}
+  ]
+},
+{ id:"sbg", zh:"萨尔茨堡", en:"Salzburg", country:"奥地利", flag:"🇦🇹", c:[47.8095,13.0550],
+  r:4.6, rec:84, nights:0, tagline:"莫扎特故乡 · 音乐节之城 · 半天精华",
+  bestFor:"半天顺路精华：要塞登顶+老城+音乐节氛围（8月加成）",
+  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Salzburg_-_Festung_Hohensalzburg.JPG/800px-Salzburg_-_Festung_Hohensalzburg.JPG",
+  weather:{t:"23°/12°", rain:"50%", note:"阿尔卑斯山前多雨，随时可能阵雨"},
+  outfit:["防雨外套","舒适步行鞋（要塞上坡）"],
+  transport:"火车站→老城公交5/25路10分钟或步行20分钟；老城全步行。租车柜台都在火车站内",
+  noBacktrack:"火车站(取车/寄存)→米拉贝尔花园→过河→粮食胡同→莫扎特出生地→要塞缆车→回程取车去湖区",
+  atts:[
+    {zh:"萨尔茨堡要塞", en:"Hohensalzburg Fortress", r:4.6, rec:5, h:2, price:"含缆车€15.50", c:[47.7945,13.0477], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Salzburg_-_Festung_Hohensalzburg.JPG/800px-Salzburg_-_Festung_Hohensalzburg.JPG", url:"https://www.festung-hohensalzburg.at/en/", desc:"中欧保存最完好的中世纪城堡，54秒缆车登顶俯瞰老城+阿尔卑斯全景。", con:"缆车排队30–45分钟——线上购票或步行上山"},
+    {zh:"米拉贝尔宫花园", en:"Mirabell Palace & Gardens", r:4.7, rec:5, h:1, price:"免费", c:[47.8054,13.0430], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Palatul_Mirabell1.jpg/800px-Palatul_Mirabell1.jpg", url:"https://www.salzburg.info/en/sights/top10/mirabell-palace-gardens", desc:"《音乐之声》Do-Re-Mi取景地，正对要塞的经典构图机位。", con:"旅行团扎堆，拍空镜赶8点前"},
+    {zh:"粮食胡同", en:"Getreidegasse", r:4.6, rec:4, h:1, price:"免费", c:[47.8000,13.0430], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Getreidegasse_am_Nachmittag%2C_Salzburg.jpg/800px-Getreidegasse_am_Nachmittag%2C_Salzburg.jpg", url:"https://www.salzburg.info/en/sights/top10/getreidegasse", desc:"世遗老城核心购物街，铁艺招牌闻名（连麦当劳都是复古招牌）。", con:"音乐节期间人流密度极高"},
+    {zh:"莫扎特出生地", en:"Mozart's Birthplace", r:4.2, rec:3, h:1, price:"€15", c:[47.8001,13.0435], url:"https://mozarteum.at/en/mozart-museums/mozarts-birthplace", desc:"粮食胡同9号黄色楼房，藏莫扎特童年小提琴与亲笔乐谱。", con:"展品文字为主，时间紧楼下打卡即可"},
+    {zh:"音乐节免费露天转播", en:"Siemens Festival Nights (Kapitelplatz)", r:4.7, rec:4, h:1.5, price:"免费", c:[47.7972,13.0470], slot:"evening", url:"https://www.salzburg.info/en/salzburg/salzburg-festival/siemens-festival-nights", desc:"音乐节期间(7/25–8/30)大教堂旁广场巨型LED屏免费放歌剧/音乐会实况，欧洲最大文化露天放映。", con:"仅傍晚开始；下雨可能取消"}
+  ],
+  hotels:{
+    budget:[{n:"a&o Salzburg Hauptbahnhof", p:"€60–95", note:"火车站旁，半天中转性价比之选"}],
+    comfort:[{n:"Motel One Salzburg-Mirabell", p:"€130–170", note:"河边位置，步行米拉贝尔花园3分钟"},{n:"Hotel Auersperg", p:"€150–185", note:"家族经营四星，屋顶露台看要塞"}],
+    luxury:[{n:"Hotel Sacher Salzburg", p:"€450+", note:"河畔百年名门，正对老城天际线"}]
+  },
+  food:[
+    {zh:"圣彼得修道院酒窖", en:"St. Peter Stiftskulinarium", r:4.4, p:"€40–60", summary:"公元803年有记载，号称欧洲最古老餐厅，音乐节期间需订位"},
+    {zh:"巴尔干烤肠小窗", en:"Balkan Grill Walter (Bosna)", r:4.6, p:"€5–8", summary:"粮食胡同小巷窗口，1950年至今只卖Bosna辣香肠面包"},
+    {zh:"托马塞利咖啡馆", en:"Café Tomaselli", r:4.2, p:"€10–18", summary:"1700年奥地利最老咖啡馆，莫扎特常客"}
+  ]
+},
+{ id:"lakes", zh:"萨尔茨卡默古特湖区", en:"Salzkammergut", country:"奥地利", flag:"🇦🇹", c:[47.6700,13.5000],
+  r:4.8, rec:95, nights:3, tagline:"盛夏天花板 · 冰洞+湖泳+蒸汽火车",
+  bestFor:"8月的绝对主角：早晨拍哈尔施塔特、中午进0°C冰洞、下午跳进21°C湖水",
+  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Hallstatt_-_Zentrum_.JPG/800px-Hallstatt_-_Zentrum_.JPG",
+  weather:{t:"23°/11°", rain:"50–55%", note:"午后14–17点易雷阵雨→山上项目排上午；湖水21–23°C可游"},
+  outfit:["泳衣+速干毛巾","防滑鞋（冰洞/五指台步道）","外套（冰洞0°C+山顶低8–10°C）","防晒（高海拔紫外线强）"],
+  transport:"自驾为王（湖村公共交通弱）；基地选圣沃尔夫冈/巴德伊舍，各景点25–40分钟车程。无车备选：Postbus 150+542/543",
+  noBacktrack:"D1: 萨尔茨堡→B158→圣沃尔夫冈(住) · D2: 早哈尔施塔特→冰洞五指山→高萨湖→回 · D3: 夏夫山→湖泳→巴德伊舍 · D4: 向东出发，不回头",
+  atts:[
+    {zh:"哈尔施塔特", en:"Hallstatt", r:4.6, rec:5, h:3, price:"镇免费·停车4h€10", c:[47.5622,13.6493], slot:"morning", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Hallstatt_-_Zentrum_.JPG/800px-Hallstatt_-_Zentrum_.JPG", url:"https://www.hallstatt.net/", desc:"世遗湖畔小镇：北侧明信片机位、集市广场、人骨教堂(€2)。⚠️盐矿+Skywalk关闭至2026年9月。", con:"过度旅游严重——8:30前到，10:30前撤；停车先到先得"},
+    {zh:"达赫施泰因冰洞+五指观景台", en:"Dachstein Ice Cave & 5fingers", r:4.7, rec:5, h:5, price:"缆车€47.90·全含€68", c:[47.5320,13.6910], slot:"morning", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Dachstein_Rieseneish%C3%B6hle_Parzifaldom_20210918.jpg/800px-Dachstein_Rieseneish%C3%B6hle_Parzifaldom_20210918.jpg", url:"https://www.dachstein-salzkammergut.com/en/", desc:"缆车两连击：巨型冰洞（冰瀑冰宫0°C）+五条钢指伸出400米绝壁俯瞰哈湖全景。", con:"需半天+；雷雨天五指台白去——排上午"},
+    {zh:"高萨湖", en:"Gosausee", r:4.8, rec:5, h:1.5, price:"免费", c:[47.5301,13.4989], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Dachsteingosau.JPG/800px-Dachsteingosau.JPG", url:"https://dachstein.salzkammergut.at/", desc:"达赫施泰因冰川倒映湖中的'阿尔卑斯之眼'，环湖1小时，湖区风光密度最高的免费景点。", con:"晴天周末停车易满；早晨倒影最好"},
+    {zh:"夏夫山蒸汽齿轮火车", en:"SchafbergBahn Cog Railway", r:4.6, rec:4, h:4, price:"往返€61", c:[47.7386,13.4400], pre:{d:7,label:"看好天气后线上订夏夫山火车座位"}, img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Aerial_image_of_the_Wolfgangsee_%28view_from_the_southeast%29.jpg/800px-Aerial_image_of_the_Wolfgangsee_%28view_from_the_southeast%29.jpg", url:"https://www.5schaetze.at/en/schafbergbahn.html", desc:"1893年奥地利最陡蒸汽火车，35分钟登1732米，山顶360°俯瞰5个湖，《音乐之声》取景地。", con:"贵且需线上订座；山顶多云=白花钱，看天气再买"},
+    {zh:"圣沃尔夫冈小镇", en:"St. Wolfgang", r:4.6, rec:4, h:1.5, price:"免费", c:[47.7376,13.4463], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/St._Wolfgang_im_Salzkammergut_-_Ortsansicht.JPG/800px-St._Wolfgang_im_Salzkammergut_-_Ortsansicht.JPG", url:"https://wolfgangsee.salzkammergut.at/en/", desc:"白墙红瓦朝圣小镇（《白马酒店》），教堂帕赫祭坛是奥地利哥特艺术巅峰，湖滨栈道傍晚绝美。", con:"镇内停车紧张收费"},
+    {zh:"沃尔夫冈湖游泳/游船", en:"Wolfgangsee Swim & Cruise", r:4.7, rec:4, h:2, price:"浴场多免费·船票€8–15", c:[47.7500,13.4200], desc:"湖区最暖的湖（8月21–23°C），湖滨浴场众多，百年航线游船连三镇。", con:"午后雷雨前风浪起，游泳看天"},
+    {zh:"巴德伊舍+皇帝别墅", en:"Bad Ischl & Kaiservilla", r:4.4, rec:3, h:2, price:"别墅导览€23–24", c:[47.7119,13.6197], url:"https://www.kaiservilla.at/", desc:"茜茜公主订婚的温泉小城；皇帝别墅导览+Esplanade河滨大道+1832年Zauner皇家糕点。", con:"导览以德语为主；赶时间只逛老城喝咖啡"},
+    {zh:"圣吉尔根+十二峰缆车", en:"St. Gilgen & Zwölferhorn", r:4.6, rec:2, h:3, price:"缆车往返€32.50", c:[47.7660,13.3654], url:"https://www.zwoelferhorn.at/en/", desc:"莫扎特母亲出生地小镇，复古小缆车11分钟登1522米观湖。", con:"与夏夫山功能重复——二选一即可"}
+  ],
+  hotels:{
+    budget:[{n:"Seehaus Familie Leifer (St. Wolfgang)", p:"€110–145", note:"家庭湖畔小屋直接下水游泳，房量少手慢无"},{n:"JUFA Hotel Bad Ischl", p:"€90–130", note:"连锁家庭酒店，湖区正中心位置"}],
+    comfort:[{n:"Hotel Goldenes Schiff (Bad Ischl)", p:"€130–160", note:"全湖区最中心+免费停车，自驾最优解"},{n:"Strandhotel Margaretha (St. Wolfgang)", p:"€160–180", note:"私家湖滩+码头，湖景房性价比高"}],
+    luxury:[{n:"Im Weissen Rössl (St. Wolfgang)", p:"€280+", note:"传奇'白马酒店'本尊，湖畔泳池+栈桥餐厅"},{n:"Seehotel Grüner Baum (Hallstatt)", p:"€300+", note:"住进哈尔施塔特明信片里，清晨独享无人小镇"}]
+  },
+  food:[
+    {zh:"白马酒店餐厅", en:"Im Weissen Rössl (Steg 73)", r:4.5, p:"€35–55", summary:"湖畔栈桥上吃皇帝煎饼，晚餐必须订位"},
+    {zh:"Seewirt Zauner", en:"Seewirt Zauner (Hallstatt)", r:4.3, p:"€25–40", summary:"哈湖直供炭烤白鲑鱼，集市广场旁"},
+    {zh:"湖畔啤酒屋", en:"Bräugasthof Hallstatt", r:4.3, p:"€25–40", summary:"湖红点鲑+湖景露台，露台座紧俏"},
+    {zh:"Zauner皇家糕点", en:"Café Zauner Esplanade (Bad Ischl)", r:4.4, p:"€10–20", summary:"1832年皇家糕点房，Zaunerstollen榛果巧克力糕"}
+  ]
+},
+{ id:"vie", zh:"维也纳", en:"Vienna", country:"奥地利", flag:"🇦🇹", c:[48.2082,16.3738],
+  r:4.7, rec:90, nights:2, tagline:"帝国之都 · 宫殿、《吻》与咖啡馆",
+  bestFor:"艺术与宫殿密度全欧顶级；咖啡馆文化独一档",
+  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Wien_-_Schloss_Sch%C3%B6nbrunn.JPG/800px-Wien_-_Schloss_Sch%C3%B6nbrunn.JPG",
+  weather:{t:"27°/16°", rain:"35–40%", note:"全程最热，可能30°C+热浪；街头饮水点可直饮；订酒店确认空调"},
+  outfit:["轻薄透气+防晒帽","水瓶","一件薄外套（空调车厢/傍晚酒馆）","进教堂注意遮肩膝"],
+  transport:"到达即还车！24h票€9.70(App)，地铁U1/U3/U4覆盖全部景点；老城内步行",
+  noBacktrack:"D1傍晚: 大教堂→格拉本→霍夫堡外观 · D2: 早美泉宫(西南)→纳旭市场→KHM→傍晚美景宫(东南)→夜普拉特(东北)，按地理扇形转不回头",
+  atts:[
+    {zh:"美泉宫", en:"Schönbrunn Palace", r:4.7, rec:5, h:3.5, price:"Grand Tour €28–32", c:[48.1845,16.3122], slot:"morning", pre:{d:28,label:"官网订美泉宫 Grand Tour 时段票"}, img:"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Wien_-_Schloss_Sch%C3%B6nbrunn.JPG/800px-Wien_-_Schloss_Sch%C3%B6nbrunn.JPG", url:"https://www.schoenbrunn.at/en/tickets-and-prices/all-tickets-tours", desc:"哈布斯堡夏宫1441间房+免费花园+凯旋门观景台，维也纳访问量第一。", con:"⚠️8月必须提前2–4周订时段票；室内像传送带且禁拍"},
+    {zh:"美景宫（克里姆特《吻》）", en:"Belvedere (Klimt's Kiss)", r:4.7, rec:5, h:2, price:"线上€18–20", c:[48.1915,16.3810], slot:"evening", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Palacio_Belvedere%2C_Viena%2C_Austria%2C_2020-02-01%2C_DD_93-95_HDR.jpg/800px-Palacio_Belvedere%2C_Viena%2C_Austria%2C_2020-02-01%2C_DD_93-95_HDR.jpg", url:"https://www.belvedere.at/en/visit/upper-belvedere", desc:"世界最大克里姆特收藏，《吻》真迹必看；7–8月延长开放到19点——傍晚错峰最聪明。", con:"《吻》前永远围一圈人，闭馆前1小时最少"},
+    {zh:"圣斯特凡大教堂", en:"St. Stephen's Cathedral", r:4.7, rec:5, h:1, price:"免费进·南塔€8", c:[48.2086,16.3731], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Wien_-_Stephansdom_%281%29.JPG/800px-Wien_-_Stephansdom_%281%29.JPG", url:"https://www.stephanskirche.at/", desc:"137米哥特南塔+25万块彩瓦屋顶=维也纳地标；登南塔343级台阶看老城全景。", con:"门口莫扎特装扮的推销员直接无视；塔梯窄闷"},
+    {zh:"艺术史博物馆", en:"Kunsthistorisches Museum", r:4.8, rec:4, h:2, price:"线上€22", c:[48.2038,16.3617], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Maria-Theresien-Platz_Kunsthistorisches_Museum_Wien_2010.jpg/800px-Maria-Theresien-Platz_Kunsthistorisches_Museum_Wien_2010.jpg", url:"https://www.khm.at/en/visit", desc:"哈布斯堡皇家收藏：勃鲁盖尔《巴别塔》、维米尔、卡拉瓦乔+华丽炸裂的大理石楼梯。", con:"认真看3小时+——只刷勃鲁盖尔厅精华1.5h"},
+    {zh:"霍夫堡宫+茜茜博物馆", en:"Hofburg & Sisi Museum", r:4.6, rec:3, h:2, price:"€20含语音导览", c:[48.2065,16.3657], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Wien_-_Neue_Hofburg.JPG/800px-Wien_-_Neue_Hofburg.JPG", url:"https://www.sisimuseum-hofburg.at/en/", desc:"哈布斯堡600年冬宫：茜茜公主生平文物最全的博物馆+皇家公寓银器馆。", con:"看过美泉宫室内会重复——只看外观+广场也行（免费）"},
+    {zh:"国家歌剧院导览", en:"Vienna State Opera Tour", r:4.8, rec:3, h:1, price:"导览~€15", c:[48.2029,16.3691], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Wiener_Staatsoper_Front.jpg/800px-Wiener_Staatsoper_Front.jpg", url:"https://www.wiener-staatsoper.at/en/guided-tours/", desc:"世界顶级歌剧院。⚠️7–8月暑休无演出→40分钟英文导览团替代，或市政厅广场免费露天音乐电影节。", con:"8月看不了真演出是硬伤"},
+    {zh:"纳旭市场", en:"Naschmarkt", r:4.4, rec:3, h:1, price:"免费进", c:[48.1987,16.3629], closed:[0], url:"https://www.wien.info/en/dine-drink/markets/naschmarkt-353536", desc:"1.5公里120+摊位最大露天市场：中东小吃、奶酪、海鲜馆，适合轻松午餐。", con:"周日关门；游客化价格偏高，先问价"},
+    {zh:"普拉特摩天轮", en:"Prater & Riesenrad", r:4.5, rec:3, h:1.5, price:"摩天轮€14.50", c:[48.2167,16.3960], slot:"evening", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Wien_Riesenrad.jpg/800px-Wien_Riesenrad.jpg", url:"https://wienerriesenrad.com/en/", desc:"1897年世界最老摩天轮之一（《爱在黎明破晓前》），65米木包厢看夜景。", con:"一圈仅12–15分钟性价比一般"},
+    {zh:"梅尔克修道院（去程顺路）", en:"Melk Abbey (en route)", r:4.6, rec:4, h:1.5, price:"€16·含导览€20", c:[48.2274,15.3319], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Stift_Melk%2C_Westansicht.jpg/800px-Stift_Melk%2C_Westansicht.jpg", url:"https://www.stiftmelk.at/en/", desc:"瓦豪河谷口巴洛克修道院：金色教堂+10万册洛可可图书馆+多瑙河露台。自驾A1出口旁5分钟，零绕路。", con:"仅适合自驾进维也纳时顺路；坐火车则跳过"}
+  ],
+  hotels:{
+    budget:[{n:"JO&JOE Wien", p:"€70–110", note:"中央车站旁新潮青旅酒店，屋顶酒吧"},{n:"ibis Wien Hauptbahnhof", p:"€85–115", note:"标准可靠，赶火车方便"}],
+    comfort:[{n:"Hotel Schani Wien", p:"€110–150", note:"中央车站3分钟——还车+去布拉格都顺；手机当房卡"},{n:"Hotel Zeitgeist Vienna", p:"€120–160", note:"四星带花园庭院和桑拿"},{n:"Motel One Wien-Staatsoper", p:"€130–170", note:"歌剧院2分钟，老城位置无敌"}],
+    luxury:[{n:"Hotel Sacher Wien", p:"€550+", note:"歌剧院对面传奇名门，萨赫蛋糕发源地"},{n:"Hotel Imperial", p:"€500+", note:"1873年帝国迎宾馆"}]
+  },
+  food:[
+    {zh:"菲格穆勒", en:"Figlmüller (Wollzeile)", r:4.4, p:"€30–35", summary:"1905年炸猪排发源地，比盘子还大——必须提前几周订位"},
+    {zh:"普拉胡塔", en:"Plachutta Wollzeile", r:4.4, p:"€40–50", summary:"皇帝最爱清炖牛肉Tafelspitz铜锅上桌，两人一锅够"},
+    {zh:"Schnitzelwirt", en:"Schnitzelwirt (第7区)", r:4.4, p:"€15–20", summary:"本地人的平价巨型炸猪排，份量夸张"},
+    {zh:"中央咖啡馆", en:"Café Central", r:4.4, p:"€15–20", summary:"最美拱顶大厅+皇帝煎饼；晚8点后去几乎不排队"},
+    {zh:"萨赫咖啡馆", en:"Café Sacher", r:4.3, p:"€18–25", summary:"原版萨赫蛋糕1832年配方；全城最贵且排队"},
+    {zh:"德梅尔", en:"Demel", r:4.4, p:"€15–20", summary:"皇室御用糕点房，萨赫蛋糕更湿润派，队比Sacher短"},
+    {zh:"迈尔酒庄新酒馆", en:"Mayer am Pfarrplatz", r:4.4, p:"€20–35", summary:"城北Heuriger自酿白葡萄酒+自助餐台，贝多芬曾住隔壁"}
+  ]
+},
+{ id:"ck", zh:"克鲁姆洛夫(CK小镇)", en:"Český Krumlov", country:"捷克", flag:"🇨🇿", c:[48.8127,14.3175],
+  r:4.7, rec:85, nights:1, tagline:"伏尔塔瓦河S湾环抱的波西米亚童话",
+  bestFor:"过夜后清晨与夜晚的无人老城是精髓；湖区→布拉格的完美中继站",
+  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Blick_auf_das_Stadtzentrum_von_Krumau_%282026%29.jpg/960px-Blick_auf_das_Stadtzentrum_von_Krumau_%282026%29.jpg",
+  weather:{t:"24°/12°", rain:"40%", note:"河谷小镇早晚温差大，清晨常有薄雾"},
+  outfit:["舒适防滑鞋（石板坡路）","薄外套（河边夜晚微凉）","漂流会湿身——备一套换洗"],
+  transport:"老城全步行（10分钟横穿）；巴士站到老城步行10分钟；自驾停P1–P3城外停车场",
+  noBacktrack:"巴士站→斯沃诺斯基广场→彩绘塔登顶→城堡区+斗篷桥→城堡花园→下午河上漂流→晚上洞穴酒馆烤肉",
+  atts:[
+    {zh:"克鲁姆洛夫城堡+彩绘塔", en:"Český Krumlov Castle & Tower", r:4.7, rec:5, h:2.5, price:"塔楼180CZK·庭院免费", c:[48.8127,14.3155], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/%C4%8Cesk%C3%BD_Krumlov%2C_z%C3%A1mek_cel%C3%BD_z_vyhl%C3%ADdky.jpg/960px-%C4%8Cesk%C3%BD_Krumlov%2C_z%C3%A1mek_cel%C3%BD_z_vyhl%C3%ADdky.jpg", url:"https://www.zamek-ceskykrumlov.cz/en", desc:"捷克第二大城堡群：文艺复兴彩绘塔登顶看S形河湾红屋顶全景；穿过免费的斗篷桥(Cloak Bridge)和五层庭院。", con:"城堡内部随导览团；只走庭院+塔楼也完全值"},
+    {zh:"老城+斯沃诺斯基广场", en:"Old Town & Náměstí Svornosti", r:4.7, rec:5, h:1.5, price:"免费", c:[48.8109,14.3155], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Blick_auf_das_Stadtzentrum_von_Krumau_%282026%29.jpg/960px-Blick_auf_das_Stadtzentrum_von_Krumau_%282026%29.jpg", url:"https://www.ckrumlov.info/en/", desc:"整个老城就是世界遗产——文艺复兴与巴洛克房子挤在河湾里，随便一条巷子都是明信片。", con:"白天一日游人潮汹涌；过夜者独享清晨傍晚"},
+    {zh:"伏尔塔瓦河漂流", en:"Vltava River Rafting/Canoe", r:4.6, rec:4, h:2, price:"400–600CZK/艇", c:[48.8100,14.3130], url:"https://www.ckrumlov.info/en/", desc:"夏季招牌玩法：橡皮艇顺平缓河水穿城漂流，从水面仰看城堡与斗篷桥，途中可停河畔酒吧。", con:"会湿身；8月热门时段需预订；贵重物品用防水袋"},
+    {zh:"圣维特教堂(CK)", en:"Church of St. Vitus (Český Krumlov)", r:4.5, rec:2, h:0.5, price:"免费", c:[48.8100,14.3170], desc:"1439年哥特教堂，塔尖与城堡彩绘塔构成小镇天际线的另一半。", con:"内部朴素，10–15分钟"},
+    {zh:"艾贡·席勒艺术中心", en:"Egon Schiele Art Centrum", r:4.4, rec:2, h:1, price:"220CZK", c:[48.8107,14.3140], url:"https://www.schieleartcentrum.cz/en/", desc:"席勒曾在此居住创作（还因画风被小镇居民赶走），美术馆藏其素描与当代展。", con:"真迹不多，粉丝向"}
+  ],
+  hotels:{
+    budget:[{n:"Hostel Skippy", p:"€50–80", note:"河畔老屋青旅，窗外就是城堡"},{n:"Pension Danny", p:"€70–95", note:"老城内家庭旅馆含早餐"}],
+    comfort:[{n:"Hotel Zlatý Anděl", p:"€100–140", note:"广场正上方，出门即全城"},{n:"Pension Gardena", p:"€90–130", note:"花园看城堡视角，停车方便"}],
+    luxury:[{n:"Hotel Růže", p:"€200–300", note:"耶稣会学院改建五星，文艺复兴气派"}]
+  },
+  food:[
+    {zh:"沙特拉夫斯卡洞穴烤肉", en:"Krčma v Šatlavské", r:4.5, p:"€15–25", summary:"中世纪地牢里的炭火烤肉，烟火气拉满——晚餐必须订位"},
+    {zh:"帕帕河景餐厅", en:"Papa's Living Restaurant", r:4.5, p:"€15–28", summary:"河畔露台正对城堡，意餐+捷克菜都在线"},
+    {zh:"莱본素食馆", en:"Laibon", r:4.5, p:"€10–18", summary:"河边草坪上的素食馆，漂流后歇脚喝东西绝佳"}
+  ]
+},
+{ id:"prg", zh:"布拉格", en:"Prague", country:"捷克", flag:"🇨🇿", c:[50.0755,14.4378],
+  r:4.7, rec:92, nights:2, tagline:"百塔之城 · 夜色与啤酒的性价比之王",
+  bestFor:"深夜查理大桥+全欧最便宜的顶级啤酒；物价只有德奥的70–80%",
+  img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Prague_07-2016_view_from_Lesser_Town_Tower_of_Charles_Bridge_img3.jpg/800px-Prague_07-2016_view_from_Lesser_Town_Tower_of_Charles_Bridge_img3.jpg",
+  weather:{t:"25°/14°", rain:"40%", note:"温暖宜人，傍晚河边微凉，适合暴走"},
+  outfit:["舒适防滑运动鞋（全程石板路）","薄外套（夜游查理大桥）","折叠伞"],
+  transport:"货币是克朗CZK非欧元！核心区全步行；上城堡电车22/23路；90分钟票50CZK，24h票150CZK，上车必须打卡（罚1500CZK）",
+  noBacktrack:"D1下午: 车站→老城广场→查理大桥→列侬墙→坎帕岛→夜返大桥 · D2: 早城堡区(西岸)→下山过桥→犹太区(东岸)→车站去机场，两岸各扫一遍不重复",
+  atts:[
+    {zh:"布拉格城堡+圣维特大教堂", en:"Prague Castle & St. Vitus Cathedral", r:4.7, rec:5, h:3, price:"联票450CZK≈€18", c:[50.0900,14.4005], slot:"morning", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Karl%C5%AFv_most_Praha%2C_Star%C3%A9_M%C4%9Bsto_20170810_007.jpg/800px-Karl%C5%AFv_most_Praha%2C_Star%C3%A9_M%C4%9Bsto_20170810_007.jpg", url:"https://www.hrad.cz/en/prague-castle-for-visitors/tickets", desc:"世界最大古堡群：圣维特大教堂穆夏彩窗、旧皇宫、黄金巷（卡夫卡22号），俯瞰红屋顶经典机位。", con:"安检排队极长——9点开门前到；正午暴晒"},
+    {zh:"查理大桥", en:"Charles Bridge", r:4.7, rec:5, h:1, price:"免费·桥塔250CZK", c:[50.0865,14.4114], slot:"evening", img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Prague_07-2016_view_from_Lesser_Town_Tower_of_Charles_Bridge_img3.jpg/800px-Prague_07-2016_view_from_Lesser_Town_Tower_of_Charles_Bridge_img3.jpg", url:"https://prague.eu/en/objevujte/charles-bridge-karluv-most/", desc:"1357年哥特石桥+30尊巴洛克圣像。夜里22点后灯光下的城堡是全程高光。", con:"白天人山人海+扒手高发——日出前或22点后去"},
+    {zh:"老城广场+天文钟", en:"Old Town Square & Astronomical Clock", r:4.7, rec:5, h:1.5, price:"免费·塔楼350CZK", c:[50.0875,14.4213], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Astronomical_Clock_%288341899828%29.jpg/800px-Astronomical_Clock_%288341899828%29.jpg", url:"https://prague.eu/en/objevujte/old-town-hall-with-astronomical-clock-staromestska-radnice-s-orlojem/", desc:"1410年世界最老仍在运转的天文钟，整点十二使徒木偶巡游；登旧市政厅塔楼360°看红屋顶。", con:"报时仅45秒别期待太高；周边餐厅换汇点全是坑"},
+    {zh:"犹太区", en:"Jewish Quarter (Josefov)", r:4.5, rec:4, h:2, price:"联票600CZK≈€24", c:[50.0900,14.4180], closed:[6], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Jewish_tawnhall_%28Prague%29.jpg/800px-Jewish_tawnhall_%28Prague%29.jpg", url:"https://www.jewishmuseum.cz/en/info/visit/opening-hours/", desc:"欧洲保存最完整的犹太街区：西班牙会堂、叠葬1.2万墓碑的旧公墓、刻8万遇难者名字的平卡斯会堂。", con:"⚠️周六闭馆！联票偏贵内容沉重"},
+    {zh:"伏尔塔瓦河脚踏船", en:"Vltava Paddle Boats", r:4.5, rec:4, h:1.5, price:"300–500CZK/时", c:[50.0805,14.4123], desc:"斯拉夫岛租天鹅脚踏船，黄昏对着城堡剪影漂着，氛围感拉满。", con:"码头拉客船贩价格混乱——认准正规公司"},
+    {zh:"佩特任山瞭望塔", en:"Petřín Hill & Tower", r:4.7, rec:3, h:2, price:"公园免费·塔250CZK", c:[50.0835,14.3950], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Pet%C5%99%C3%ADnsk%C3%A1_rozhledna%2C_Prague.jpg/800px-Pet%C5%99%C3%ADnsk%C3%A1_rozhledna%2C_Prague.jpg", url:"https://prague.eu/en/objevujte/petrin-tower-petrinska-rozhledna/", desc:"小号埃菲尔铁塔（1891年），299级台阶登顶全城+城堡全景。", con:"⚠️缆车检修中（2026Q3才可能恢复）——步行上山25分钟"},
+    {zh:"列侬墙", en:"Lennon Wall", r:4.4, rec:3, h:0.5, price:"免费", c:[50.0862,14.4068], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Lennon_Wall%2C_August_2014.jpg/800px-Lennon_Wall%2C_August_2014.jpg", url:"https://prague.eu/en/objevujte/lennon-wall-lennonova-zed/", desc:"1980年代捷克年轻人追求自由的象征涂鸦墙，距查理大桥5分钟顺路打卡。", con:"就是一面墙，5–10分钟；拍照排队等空位"},
+    {zh:"高堡", en:"Vyšehrad", r:4.7, rec:2, h:2, price:"园区免费", c:[50.0645,14.4180], img:"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Parn%C3%ADk_Vy%C5%A1ehrad_pod_Vy%C5%A1ehradem.jpg/800px-Parn%C3%ADk_Vy%C5%A1ehrad_pod_Vy%C5%A1ehradem.jpg", url:"https://praha-vysehrad.cz/en/visit/", desc:"河畔悬崖古堡垒+德沃夏克长眠的名人公墓，游客少本地人多的清净全景点。", con:"离老城3公里——时间紧优先级最低"}
+  ],
+  hotels:{
+    budget:[{n:"Mosaic House Design Hotel", p:"€75–110", note:"新城设计感青旅酒店混合体，步行老城10分钟"},{n:"Czech Inn", p:"€60–95", note:"Vinohrady区高分平价，电车直达老城"}],
+    comfort:[{n:"Hotel Leonardo Prague", p:"€130–170", note:"查理大桥4分钟——夜游大桥的完美据点"},{n:"Century Old Town – MGallery", p:"€120–160", note:"卡夫卡工作过的大楼；赶机场大巴极方便"}],
+    luxury:[{n:"Augustine, a Luxury Collection Hotel", p:"€420+", note:"小城区13世纪修道院改建，城堡脚下"},{n:"Four Seasons Prague", p:"€600+", note:"河畔正对查理大桥，全城最佳景观房"}]
+  },
+  food:[
+    {zh:"Lokál Dlouhá", en:"Lokál Dlouhááá", r:4.6, p:"€14–20", summary:"全城最新鲜罐装皮尔森+奶油炖牛肉svíčková，必须订位"},
+    {zh:"U Fleků", en:"U Fleků", r:4.4, p:"€20–29", summary:"1499年至今自酿13°黑啤；端上来的蜂蜜酒不是免费的，当场拒绝"},
+    {zh:"磨坊餐厅", en:"Restaurace Mlejnice", r:4.5, p:"€14–22", summary:"广场旁小巷烤鸭腿+面包碗古拉什，店小需等位"},
+    {zh:"U Medvídků", en:"U Medvídků", r:4.3, p:"€16–24", summary:"1466年老啤酒馆，自酿X-Beer 33号称世界最烈"}
+  ]
+}
+],
+
+/* ---- 城际交通（键: fromId>toId；未收录的组合由引擎按距离自动估算）---- */
+legs: {
+  "fra>hd": {mode:"train", icon:"🚄", name:"IC/RE 直达", dur:"~55min", durH:1, dist:"~90km", price:"€10–25", freq:"每30分钟", book:"bahn.de", url:"https://www.bahn.de", note:"机场长途站也有直达班次"},
+  "fra>muc": {mode:"train", icon:"🚄", name:"ICE 直达", dur:"3h20", durH:3.5, dist:"400km", price:"特价€20–40 / 全价~€100", freq:"每1–2小时", book:"bahn.de", url:"https://www.bahn.de", note:"机场长途火车站直发；特价票绑定车次，留2h航班缓冲", pre:{d:75,label:"bahn.de 买 FRA→慕尼黑 ICE 特价票"}},
+  "hd>rot": {mode:"drive", icon:"🚗", name:"自驾 A6+A7", dur:"~2h", durH:2, dist:"~170km", price:"油费~€19", freq:"—", book:"火车需3h换乘2次", url:"https://www.bahn.de", note:"这段自驾比火车省时省心"},
+  "hd>muc": {mode:"train", icon:"🚄", name:"ICE/EC", dur:"~3h10", durH:3, dist:"~350km", price:"€30–60", freq:"每小时", book:"bahn.de", url:"https://www.bahn.de"},
+  "rot>fus": {mode:"drive", icon:"🚗", name:"自驾·罗曼蒂克大道", dur:"~2.5h", durH:2.5, dist:"~220km", price:"油费~€24", freq:"—", book:"沿途可停Dinkelsbühl", url:"https://www.romantischestrasse.de/en/", note:"罗曼蒂克大道精华段，途经丁克尔斯比尔"},
+  "rot>muc": {mode:"train", icon:"🚄", name:"RE换乘(Ansbach/Treuchtlingen)", dur:"~2h45", durH:3, dist:"~240km", price:"€25–40 / 拜仁州票", freq:"每小时", book:"bahn.de", url:"https://www.bahn.de"},
+  "fus>muc": {mode:"train", icon:"🚄", name:"RE 直达", dur:"~2h", durH:2, dist:"~130km", price:"€21–30 / 拜仁州票2人€39", freq:"每小时", book:"bahn.de", url:"https://www.bahn.de", note:"周末用拜仁州票最划算"},
+  "muc>kon": {mode:"drive", icon:"🚗", name:"自驾 A8", dur:"~2h", durH:2, dist:"~150km", price:"油费~€17", freq:"—", book:"火车+巴士约2h50", url:"https://www.bahn.de", note:"无车：火车到Berchtesgaden转841路"},
+  "muc>sbg": {mode:"train", icon:"🚄", name:"Railjet", dur:"1h30", durH:1.5, dist:"150km", price:"特价€12–18 / Bayern-Ticket 2人€39", freq:"每小时", book:"oebb.at / bahn.de", url:"https://www.oebb.at", note:"临时买用拜仁州票更灵活（周末全天有效）", pre:{d:30,label:"订慕尼黑→萨尔茨堡 Railjet 特价票"}},
+  "muc>lakes": {mode:"drive", icon:"🚗", name:"自驾 A8+B158", dur:"~2h", durH:2, dist:"~140km", price:"油费~€18", freq:"—", book:"租车", url:"https://www.rentalcars.com", note:"跳过萨尔茨堡时的直达走法"},
+  "muc>vie": {mode:"train", icon:"🚄", name:"Railjet 直达", dur:"4h", durH:4, dist:"~440km", price:"特价€25–40", freq:"每小时", book:"oebb.at", url:"https://www.oebb.at", note:"跳过湖区时的直达选择"},
+  "kon>sbg": {mode:"drive", icon:"🚗", name:"自驾 B305/B160", dur:"~40min", durH:0.7, dist:"~28km", price:"油费~€4", freq:"—", book:"巴士840约50分钟", url:"https://www.oebb.at", note:"国王湖离萨尔茨堡近得出奇"},
+  "kon>lakes": {mode:"drive", icon:"🚗", name:"自驾·德国阿尔卑斯风景路B305", dur:"~1h20", durH:1.5, dist:"~95km", price:"油费~€11", freq:"—", book:"沿途山景一路", url:"https://www.google.com/maps", note:"经Bad Reichenhall—St. Gilgen，风景极佳"},
+  "sbg>lakes": {mode:"drive", icon:"🚗", name:"自驾 B158 风景路", dur:"40–55min", durH:1, dist:"~40km", price:"油费~€6", freq:"—", book:"萨尔茨堡火车站取车", url:"https://www.rentalcars.com", note:"无车备选：Postbus 150 约1h30 €7"},
+  "sbg>vie": {mode:"train", icon:"🚄", name:"Railjet", dur:"2h22", durH:2.5, dist:"~300km", price:"特价€19–30", freq:"每30–60分钟", book:"oebb.at", url:"https://www.oebb.at", note:"跳过湖区时的走法"},
+  "sbg>ck": {mode:"drive", icon:"🚗", name:"自驾", dur:"~1h50", durH:2, dist:"~150km", price:"油费~€17", freq:"—", book:"或Shuttle拼车", url:"https://www.ckshuttle.cz/", note:"CK Shuttle 门到门拼车约€35/人"},
+  "lakes>vie": {mode:"drive", icon:"🚗", name:"自驾 A1（顺路梅尔克）", dur:"3.5h(+梅尔克1.5h)", durH:3.5, dist:"~290km", price:"油费~€40 + Vignette €12.80", freq:"—", book:"维也纳中央车站还车", url:"https://shop.asfinag.at/en/toll-products/digital-vignette/10-day-vignette-car/", note:"到达当天立即还车！奥地利境内单程费€50–100"},
+  "lakes>ck": {mode:"drive", icon:"🚗", name:"自驾（经Freistadt或Linz）", dur:"~2h", durH:2, dist:"~150km", price:"油费~€17", freq:"—", book:"或CK Shuttle拼车", url:"https://www.ckshuttle.cz/", note:"出奥入捷不用Vignette之外的手续，租车确认可跨境"},
+  "vie>ck": {mode:"bus", icon:"🚌", name:"RegioJet 直达巴士", dur:"~3h", durH:3, dist:"~230km", price:"€15–25", freq:"每天数班", book:"regiojet.com", url:"https://regiojet.com", note:"比火车换乘方便得多"},
+  "vie>prg": {mode:"train", icon:"🚄", name:"Railjet 直达", dur:"~4h", durH:4, dist:"~330km", price:"早鸟€15–30（+订座€3–4.5）", freq:"每2小时约9班/天", book:"oebb.at / cd.cz 双平台比价", url:"https://tickets.oebb.at", note:"8月务必订座；RegioJet €15–24 为舒适备选", pre:{d:75,label:"oebb.at / cd.cz 买维也纳→布拉格早鸟票+订座"}},
+  "ck>prg": {mode:"bus", icon:"🚌", name:"RegioJet/FlixBus 直达", dur:"~3h", durH:3, dist:"~180km", price:"€9–15", freq:"每1–2小时", book:"regiojet.com", url:"https://regiojet.com", note:"RegioJet含免费热饮，提前订有好座位"},
+  "prg>out": {mode:"bus", icon:"🚌", name:"AE机场快线 → PRG", dur:"40min", durH:0.7, dist:"~17km", price:"200 CZK ≈ €8", freq:"每30分钟", book:"prg.aero / 车上刷卡", url:"https://www.prg.aero/en/airport-express", note:"傍晚航班提前3h从老城出发；便宜替代：地铁A+59路 50CZK"}
+},
+
+timetable: [
+  {route:"法兰克福机场 → 慕尼黑", mode:"ICE", freq:"直达约每1–2小时", span:"约6:00–20:00", dur:"3h20–3h50", price:"€20–100", book:"bahn.de", url:"https://www.bahn.de"},
+  {route:"法兰克福 → 海德堡", mode:"IC/RE", freq:"每30分钟", span:"全天", dur:"55min–1h20", price:"€10–25", book:"bahn.de", url:"https://www.bahn.de"},
+  {route:"慕尼黑 → 菲森(新天鹅堡)", mode:"RE", freq:"每小时", span:"约5:00–22:00", dur:"~2h", price:"€21–30/拜仁票", book:"bahn.de", url:"https://www.bahn.de", note:"菲森站转73/78路公交到城堡"},
+  {route:"慕尼黑 → 萨尔茨堡", mode:"Railjet / BRB", freq:"Railjet每小时·区域车每小时", span:"约5:00–22:00", dur:"1h30–2h", price:"€12–45", book:"oebb.at / bahn.de", url:"https://www.oebb.at"},
+  {route:"萨尔茨堡 ↔ 国王湖", mode:"Bus 840", freq:"约每小时", span:"约7:00–19:00", dur:"~50min", price:"~€6", book:"车上购票", url:"https://www.oebb.at"},
+  {route:"萨尔茨堡 ↔ 巴德伊舍（湖区）", mode:"Postbus 150", freq:"约每小时", span:"约6:00–20:00", dur:"1h30", price:"~€7", book:"车上购票 / oebb.at", url:"https://www.oebb.at", note:"无车时的湖区干线"},
+  {route:"巴德伊舍 ↔ 哈尔施塔特", mode:"火车+渡船 / Bus 542+543", freq:"约每小时", span:"约6:00–18:00", dur:"~50min", price:"~€6", book:"oebb.at", url:"https://www.oebb.at"},
+  {route:"维也纳/湖区 → CK小镇", mode:"RegioJet巴士 / CK Shuttle", freq:"每天数班", span:"早中晚", dur:"2–3h", price:"€15–35", book:"regiojet.com / ckshuttle.cz", url:"https://regiojet.com"},
+  {route:"CK小镇 → 布拉格", mode:"RegioJet/FlixBus", freq:"每1–2小时", span:"约6:00–20:00", dur:"~3h", price:"€9–15", book:"regiojet.com", url:"https://regiojet.com"},
+  {route:"维也纳 → 布拉格", mode:"Railjet", freq:"每2小时（约9班/天）", span:"约6:00–20:00", dur:"~4h", price:"€15–65", book:"oebb.at / cd.cz", url:"https://tickets.oebb.at"},
+  {route:"布拉格市区 → PRG机场", mode:"AE快线 / 地铁A+59路", freq:"AE每30分钟", span:"5:30–21:00", dur:"40–50min", price:"200 / 50 CZK", book:"prg.aero", url:"https://www.prg.aero/en/airport-express"}
+],
+
+rankWhy: {
+  lakes:"盛夏限定玩法最多：21–23°C湖泳、0°C冰洞、蒸汽火车、免费高萨湖——快节奏朋友团一天三种气候；缺点只有午后雷雨和哈镇人潮（起早解决）",
+  prg:"深夜查理大桥是全程高光；啤酒€3/杯物价最低；1.5天就能扫完核心——时间性价比之王",
+  vie:"《吻》+美泉宫+咖啡馆文化的组合密度全欧无出其右；8月唯一减分：歌剧院暑休+可能热浪",
+  fus:"新天鹅堡=德国旅行的名片，玛丽恩桥机位值回全部车程；唯一门槛是必须提前抢官网时段票",
+  kon:"首班船进峡湾+上湖徒步是德国自然景观天花板；离萨尔茨堡仅30分钟，顺路程度极高",
+  muc:"啤酒馆文化的最佳入门+城市冲浪奇观；作为第一站倒时差强度刚好",
+  ck:"过夜后清晨的无人老城是精髓；湖区→布拉格的完美中继，还能河上漂流降温",
+  sbg:"半天就值回票价：要塞全景+音乐节免费转播氛围加成；不用过夜是它最大的优点",
+  hd:"大学城气质+城堡废墟+哲学家小径全景，法兰克福进出的完美第一站或收尾站",
+  rot:"保存最完整的中世纪城墙小镇+全德最有名的夜巡人之旅；一日游人潮散去后才见真容",
+  fra:"纯门户：老城半天可看可不看——航班落地直接上火车也完全不亏"
+}
+};
+
+/* ================================================================
+   引擎层 —— 与目的地无关，换 TRIP 数据即可复用
+   ================================================================ */
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const gm=q=>"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(q);
+const bing=(q,w)=>{w=w||1200;return "https://tse2.mm.bing.net/th?q="+encodeURIComponent(q)+"&w="+w+"&h="+Math.round(w*0.625)+"&c=7&rs=1&qlt=90";};
+/* 把 upload.wikimedia.org 缩略图URL 转成 commons thumb.php 高清直出（该域名不被企业代理拦截） */
+function wikiFile(u){const m=/\/commons\/thumb\/[0-9a-f]\/[0-9a-f]{2}\/([^\/]+)\//.exec(u||"");return m?m[1]:null;}
+function hiRes(u,w){const f=wikiFile(u);return f?"https://commons.wikimedia.org/w/thumb.php?f="+f+"&width="+(w||1200):(u||"");}
+const cityById=id=>TRIP.cities.find(c=>c.id===id);
+const WD=["日","一","二","三","四","五","六"];
+const TIER_LABEL={budget:"经济 💰",comfort:"舒适 💰💰",luxury:"高端 💰💰💰"};
+const MODE_COLOR={train:"#2563eb",drive:"#d97706",bus:"#7c3aed"};
+
+/* 图片回退链：commons高清直出 → Bing大图(qlt90) → 占位/隐藏 */
+function imgTag(src,q,final,w){
+  w=w||1000;
+  const fb=bing(q,w);
+  const s=src?hiRes(src,w):fb;
+  return '<img src="'+s+'" loading="lazy" data-fb="'+esc(fb)+'" data-final="'+(final||"ph")+'" onerror="imgErr(this)" alt="">';
+}
+window.imgErr=function(el){
+  if(el.src.indexOf("bing.net")<0&&el.dataset.fb){el.src=el.dataset.fb;return;}
+  if(el.dataset.final==="hide"){el.remove();return;}
+  el.outerHTML='<div class="noimg">📷</div>';
+};
+
+/* ---------- 页头渲染（数据驱动，背景图带回退）---------- */
+(function(){
+  const m=TRIP.meta||{};
+  $("#heroflags").textContent=m.flags||"";
+  $("#heroregion").textContent=m.region||"";
+  $("#heroregionen").textContent=m.regionEn||"";
+  $("#herosub").innerHTML=(m.sub||[]).map(s=>'<span class="pillh">'+esc(s)+"</span>").join("");
+  const fbh=bing(m.heroQuery||m.regionEn||"travel landscape",1920);
+  const hs=m.heroImg?hiRes(m.heroImg,1920):fbh;
+  $("#herobg").innerHTML='<img src="'+hs+'" data-fb="'+esc(fbh)+'" data-final="hide" onerror="imgErr(this)" alt="">';
+})();
+
+/* 距离与兜底交通 */
+function hav(p,q){
+  const R=6371, dLa=(q[0]-p[0])*Math.PI/180, dLo=(q[1]-p[1])*Math.PI/180;
+  const la1=p[0]*Math.PI/180, la2=q[0]*Math.PI/180;
+  const x=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(la1)*Math.cos(la2)*Math.sin(dLo/2)*Math.sin(dLo/2);
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+function getLeg(a,b){
+  const l=TRIP.legs[a.id+">"+b.id];
+  if(l) return l;
+  const km=Math.round(hav(a.c,b.c)*1.3);
+  const h=Math.max(0.5,Math.round(km/85*10)/10);
+  return {mode:"drive",icon:"🚗",name:"自驾（估算）",dur:"约"+h+"h",durH:h,dist:"~"+km+"km",price:"油费~€"+Math.round(km*0.11),freq:"—",
+    book:"Google 导航",url:"https://www.google.com/maps/dir/?api=1&origin="+a.c[0]+","+a.c[1]+"&destination="+b.c[0]+","+b.c[1],
+    note:"该组合未收录直连数据，按距离估算——也可上 bahn.de / oebb.at 查火车",auto:true};
+}
+
+/* ---------- 状态（含旧存档迁移）---------- */
+const DEFAULTS={date:"2026-08-01",days:9,budget:"comfort",
+  on:{fra:true,hd:false,rot:false,fus:false,muc:true,kon:false,sbg:true,lakes:true,vie:true,ck:false,prg:true},
+  nights:{fra:0,hd:0,rot:0,fus:0,muc:2,kon:0,sbg:0,lakes:3,vie:2,ck:0,prg:1},
+  atts:null};
+function defaultAttSel(){
+  const sel={};
+  TRIP.cities.forEach(c=>{sel[c.id]={}; c.atts.forEach((a,i)=>{sel[c.id][i]=a.rec>=3});});
+  return sel;
+}
+function normalizeState(s){
+  if(!s||typeof s!=="object") return null;
+  s.on=s.on||{}; s.nights=s.nights||{}; s.atts=s.atts||{};
+  TRIP.cities.forEach(c=>{
+    if(typeof s.on[c.id]==="undefined") s.on[c.id]=false;
+    if(typeof s.nights[c.id]!=="number") s.nights[c.id]=0;
+    if(!s.atts[c.id]){s.atts[c.id]={}; c.atts.forEach((a,i)=>{s.atts[c.id][i]=a.rec>=3});}
+  });
+  if(!s.date) s.date=DEFAULTS.date;
+  if(!s.days) s.days=DEFAULTS.days;
+  if(!s.budget) s.budget=DEFAULTS.budget;
+  return s;
+}
+function loadState(){try{return normalizeState(JSON.parse(localStorage.getItem("plannerState")))}catch(e){return null}}
+function saveState(){try{localStorage.setItem("plannerState",JSON.stringify(state))}catch(e){}}
+let state=loadState();
+if(!state){state=JSON.parse(JSON.stringify(DEFAULTS)); state.atts=defaultAttSel();}
+
+/* ---------- alerts ---------- */
+$("#alertlist").innerHTML=TRIP.alerts.map(a=>"<li>"+a+"</li>").join("");
+
+/* ---------- Section 1: map ---------- */
+const map=L.map("map",{scrollWheelZoom:false}).setView([48.7,12.0],6);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap"}).addTo(map);
+map.on("click",()=>map.scrollWheelZoom.enable());
+
+let routeLayer=L.layerGroup().addTo(map);
+let attLayer=L.layerGroup().addTo(map);
+let dayRouteLayer=L.layerGroup().addTo(map);
+const cityMarkers={};
+TRIP.cities.forEach(city=>{
+  const icon=L.divIcon({className:"", html:'<div class="pin" id="pin-'+city.id+'">'+city.zh+" ★"+city.r.toFixed(1)+"</div>", iconSize:null, iconAnchor:[34,14]});
+  const mk=L.marker(city.c,{icon}).addTo(map);
+  mk.on("click",()=>selectCity(city.id,true));
+  cityMarkers[city.id]=mk;
+});
+map.fitBounds(TRIP.cities.map(c=>c.c),{padding:[40,40]});
+
+function drawRoute(){
+  routeLayer.clearLayers();
+  const selIds=TRIP.cities.filter(c=>state.on[c.id]).map(c=>c.id);
+  for(let i=0;i<selIds.length-1;i++){
+    const a=cityById(selIds[i]), b=cityById(selIds[i+1]), leg=getLeg(a,b);
+    L.polyline([a.c,b.c],{color:MODE_COLOR[leg.mode]||"#888",weight:4,dashArray:leg.mode==="train"?"8 6":null,opacity:.85})
+      .addTo(routeLayer)
+      .bindPopup(leg.icon+" "+esc(a.zh)+" → "+esc(b.zh)+"："+esc(leg.name)+" · "+esc(leg.dur)+" · "+esc(leg.price));
+  }
+  TRIP.cities.forEach(c=>{
+    const pin=document.getElementById("pin-"+c.id);
+    if(pin) pin.classList.toggle("dim",!state.on[c.id]);
+  });
+  renderChips();
+}
+
+function renderChips(){
+  $("#chips").innerHTML=TRIP.cities.map(c=>
+    '<button class="chip'+(state.on[c.id]?"":" excluded")+(currentCity===c.id?" on":"")+'" data-id="'+c.id+'">'+c.flag+" "+c.zh+"</button>").join("");
+  $$("#chips .chip").forEach(b=>b.addEventListener("click",()=>selectCity(b.dataset.id,true)));
+}
+
+function prevLegOf(id){
+  const selIds=TRIP.cities.filter(c=>state.on[c.id]).map(c=>c.id);
+  let list=selIds.indexOf(id)>=0?selIds:TRIP.cities.map(c=>c.id);
+  const i=list.indexOf(id);
+  if(i<=0) return null;
+  const from=cityById(list[i-1]);
+  return {from:from, leg:getLeg(from,cityById(id))};
+}
+
+let currentCity=null;
+function selectCity(id,zoom){
+  const c=cityById(id); if(!c) return;
+  currentCity=id;
+  renderChips();
+  attLayer.clearLayers();
+  dayRouteLayer.clearLayers();
+  c.atts.forEach(a=>{
+    if(!a.c) return;
+    L.circleMarker(a.c,{radius:6,color:"#fff",weight:2,fillColor:"#c0512f",fillOpacity:.95})
+      .addTo(attLayer)
+      .bindTooltip(esc(a.zh)+" ★"+a.r+" · "+a.h+"h")
+      .bindPopup("<b>"+esc(a.zh)+"</b> "+esc(a.en)+"<br>★"+a.r+" · 建议"+a.h+"小时 · "+esc(a.price)+'<br><a href="'+gm(a.en+" "+c.en)+'" target="_blank">Google Maps ↗</a>');
+  });
+  if(zoom&&c.atts.some(a=>a.c)){
+    map.fitBounds(c.atts.filter(a=>a.c).map(a=>a.c),{padding:[50,50],maxZoom:13});
+  }
+  const pl=prevLegOf(id);
+  const top=c.atts.slice().sort((a,b)=>b.rec-a.rec||b.r-a.r).slice(0,3);
+  const inPlan=state.on[id];
+  $("#citycard").innerHTML=
+    '<div class="cover">'+imgTag(c.img,c.en+" travel","hide",1200)+
+      '<div class="ct"><b>'+c.flag+" "+esc(c.zh)+'</b><span>'+esc(c.en)+" · "+esc(c.tagline)+"</span></div></div>"+
+    '<div class="cc-body">'+
+      '<div class="cc-row">'+
+        '<span class="pill gold">★ '+c.r.toFixed(1)+'</span>'+
+        '<span class="pill">推荐指数 '+c.rec+"/100</span>"+
+        '<span class="pill">建议停留 '+(c.nights===0?"半天不过夜":c.nights+" 晚")+"</span>"+
+        '<span class="pill'+(inPlan?"":" off")+'">'+(inPlan?"✓ 已在行程":"未加入行程")+"</span>"+
+      "</div>"+
+      (pl?'<div class="cc-row"><span class="pill dist">距上一站 '+esc(pl.from.zh)+"："+pl.leg.icon+" "+esc(pl.leg.dur)+" · "+esc(pl.leg.dist)+" · "+esc(pl.leg.price)+"</span></div>":"")+
+      '<div class="cc-row"><span class="pill">🌡️ '+esc(c.weather.t)+'</span><span class="pill">☔ '+esc(c.weather.rain)+"</span></div>"+
+      '<div class="cc-row" id="ccwx"></div>'+
+      "<p style='font-size:13.3px;color:#444'>"+esc(c.bestFor)+"</p>"+
+      "<h4>本站 Top 3 体验</h4><div class='cc-top'>"+
+        top.map(a=>'<div class="t"><span>'+esc(a.zh)+' <small class="enin">'+esc(a.en)+"</small></span><em>★"+a.r+"</em></div>").join("")+
+      "</div>"+
+      '<div class="cc-btns">'+
+        '<button class="btn pri" onclick="openModal(\''+c.id+'\')">📖 展开完整攻略</button>'+
+        '<button class="btn '+(inPlan?"warn":"sec")+'" onclick="toggleCity(\''+c.id+'\')">'+(inPlan?"− 移出行程":"＋ 加入行程")+"</button>"+
+      "</div>"+
+    "</div>";
+  fetchWx(c).then(daily=>{
+    if(!daily||!daily.time||currentCity!==c.id)return;
+    const el=document.getElementById("ccwx"); if(!el)return;
+    el.innerHTML=daily.time.slice(0,3).map((t,k)=>'<span class="pill">'+t.slice(5).replace("-","/")+" "+wmoIcon(daily.weather_code[k])+" "+Math.round(daily.temperature_2m_max[k])+"°/"+Math.round(daily.temperature_2m_min[k])+"°</span>").join("")+'<span class="pill off">近3日实况预报</span>';
+  });
+}
+
+window.toggleCity=function(id){
+  state.on[id]=!state.on[id];
+  if(state.on[id]&&state.nights[id]===0){
+    const rc=cityById(id);
+    state.nights[id]=rc.nights;
+  }
+  if(!state.on[id]) state.nights[id]=0;
+  saveState(); renderControls(); drawRoute(); selectCity(id,false); renderRank();
+};
+
+/* ---------- modal ---------- */
+const TABS=[["atts","🏛️ 景点详情"],["hotels","🏨 住宿建议"],["food","🍽️ 美食推荐"],["transport","🚇 当地交通"],["outfit","👕 穿搭与天气"]];
+let modalCity=null;
+window.openModal=function(id){
+  modalCity=cityById(id); if(!modalCity) return;
+  $("#m-title").textContent=modalCity.flag+" "+modalCity.zh;
+  $("#m-en").textContent=modalCity.en+" · "+modalCity.tagline;
+  $("#m-tabs").innerHTML=TABS.map((t,i)=>'<button data-t="'+t[0]+'" class="'+(i===0?"on":"")+'">'+t[1]+"</button>").join("");
+  $$("#m-tabs button").forEach(b=>b.addEventListener("click",()=>{
+    $$("#m-tabs button").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+    renderTab(b.dataset.t);
+  }));
+  renderTab("atts");
+  $("#modalbg").classList.add("open");
+  document.body.style.overflow="hidden";
+};
+function closeModal(){$("#modalbg").classList.remove("open");document.body.style.overflow="";}
+$("#m-close").addEventListener("click",closeModal);
+$("#modalbg").addEventListener("click",e=>{if(e.target===$("#modalbg"))closeModal()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
+
+function renderTab(t){
+  const c=modalCity, el=$("#m-body");
+  if(t==="atts"){
+    el.innerHTML=c.atts.slice().sort((a,b)=>b.rec-a.rec||b.r-a.r).map(a=>
+      '<div class="att-row">'+imgTag(a.img,a.en+" "+c.en,"ph",800)+
+        '<div class="ar-b"><b>'+esc(a.zh)+' <small class="enin">'+esc(a.en)+"</small></b>"+
+        '<div class="meta"><span class="pill gold">★ '+a.r+'</span><span class="pill">推荐 '+"⭐".repeat(a.rec)+'</span><span class="pill">建议 '+a.h+'h</span><span class="pill">'+esc(a.price)+"</span></div>"+
+        "<p>"+esc(a.desc)+"</p>"+
+        '<div class="con">⚠️ '+esc(a.con)+"</div>"+
+        '<div class="lk">'+(a.url?'<a href="'+a.url+'" target="_blank">官网 ↗</a> · ':"")+'<a href="'+gm(a.en+" "+c.en)+'" target="_blank">Google Maps ↗</a></div>'+
+        "</div></div>").join("");
+  } else if(t==="hotels"){
+    el.innerHTML='<div class="note">💡 点击酒店名直接跳 Google Maps 查看实时价格与评价；旺季建议提前 60–90 天锁定可免费取消的房价。</div>'+
+      ["budget","comfort","luxury"].map(tier=>{
+        const hs=c.hotels[tier]||[]; if(!hs.length) return "";
+        return '<div class="tier"><b>'+TIER_LABEL[tier]+"</b>"+hs.map(h=>
+          '<div class="hrow"><span><a href="'+gm(h.n+" "+c.en+" hotel")+'" target="_blank"><b>'+esc(h.n)+'</b> ↗</a><br><small class="subnote">'+esc(h.note)+"</small></span>"+
+          '<span class="price">'+esc(h.p)+"</span></div>").join("")+"</div>";
+      }).join("");
+  } else if(t==="food"){
+    el.innerHTML='<div class="note">💡 点击餐厅名跳 Google Maps 看菜单、评价和是否需要订位。</div>'+
+      c.food.map(f=>
+      '<div class="frow"><span><a href="'+gm(f.en+" "+c.en)+'" target="_blank"><b>'+esc(f.zh)+'</b> <small class="enin">'+esc(f.en)+'</small> ↗</a><br><small class="subnote">'+esc(f.summary)+"</small></span>"+
+      '<span style="text-align:right"><span class="gstar">★ '+f.r+'</span><br><span class="price">'+esc(f.p)+"</span></span></div>").join("");
+  } else if(t==="transport"){
+    const pl=prevLegOf(c.id);
+    el.innerHTML=
+      (pl?'<div class="note"><b>如何抵达</b>（从'+esc(pl.from.zh)+"）："+pl.leg.icon+" "+esc(pl.leg.name)+" · "+esc(pl.leg.dur)+" · "+esc(pl.leg.price)+' · <a href="'+pl.leg.url+'" target="_blank">'+esc(pl.leg.book)+" ↗</a><br>"+esc(pl.leg.note||"")+"</div>":"")+
+      '<div class="note"><b>市内交通</b>：'+esc(c.transport)+"</div>"+
+      '<div class="note" style="border-left-color:var(--accent2)"><b>不走回头路的动线</b>：'+esc(c.noBacktrack)+"</div>";
+  } else if(t==="outfit"){
+    el.innerHTML=
+      '<div class="note">🌡️ '+esc(c.weather.t)+" · ☔ 降雨概率 "+esc(c.weather.rain)+"<br>"+esc(c.weather.note)+"</div>"+
+      "<ul class='outfit'>"+c.outfit.map(o=>"<li>"+esc(o)+"</li>").join("")+"</ul>";
+  }
+}
+
+/* ---------- Section 2: ranking ---------- */
+function renderRank(){
+  const sorted=TRIP.cities.slice().sort((a,b)=>b.rec-a.rec);
+  $("#ranklist").innerHTML=sorted.map((c,i)=>
+    '<div class="rk" data-id="'+c.id+'">'+
+      '<div class="no">'+(i+1)+"</div>"+
+      '<div class="info"><b>'+c.flag+" "+esc(c.zh)+'</b><span class="en">'+esc(c.en)+" · ★"+c.r.toFixed(1)+" · 建议"+(c.nights===0?"半天":c.nights+"晚")+'</span> <span class="inplan'+(state.on[c.id]?"":" no")+'">'+(state.on[c.id]?"✓ 已在行程":"候选")+"</span>"+
+      '<div class="why">'+esc(TRIP.rankWhy[c.id]||c.bestFor)+"</div>"+
+      '<div class="bar"><i style="width:'+c.rec+'%"></i></div></div>'+
+      '<div class="score">'+c.rec+"<small>推荐指数</small></div>"+
+    "</div>").join("");
+  $$("#ranklist .rk").forEach(r=>r.addEventListener("click",()=>{
+    location.hash="explore"; selectCity(r.dataset.id,true);
+  }));
+}
+
+/* ---------- Section 3: planner ---------- */
+function renderControls(){
+  $("#p-date").value=state.date;
+  $("#p-days").value=state.days;
+  $("#p-budget").value=state.budget;
+  $("#cityrows").innerHTML=TRIP.cities.map(c=>
+    '<div class="cityrow'+(state.on[c.id]?"":" off")+'" data-id="'+c.id+'">'+
+      '<input type="checkbox" '+(state.on[c.id]?"checked":"")+">"+
+      '<span class="nm">'+c.flag+" "+esc(c.zh)+"<small>推荐 "+(c.nights===0?"半天(0晚)":c.nights+"晚")+" · ★"+c.r.toFixed(1)+" · 指数"+c.rec+"</small></span>"+
+      '<span class="stepper"><button type="button" class="mn">−</button><span class="nv">'+state.nights[c.id]+' 晚</span><button type="button" class="pl">＋</button></span>'+
+    "</div>").join("");
+  $$("#cityrows .cityrow").forEach(row=>{
+    const id=row.dataset.id;
+    row.querySelector("input").addEventListener("change",e=>{
+      state.on[id]=e.target.checked;
+      if(state.on[id]&&state.nights[id]===0) state.nights[id]=cityById(id).nights;
+      if(!state.on[id]) state.nights[id]=0;
+      saveState(); renderControls(); drawRoute(); renderRank();
+    });
+    row.querySelector(".mn").addEventListener("click",()=>{if(state.nights[id]>0){state.nights[id]--; saveState(); renderControls();}});
+    row.querySelector(".pl").addEventListener("click",()=>{if(state.nights[id]<14){state.nights[id]++; saveState(); renderControls();}});
+  });
+  const need=Math.max(0,(parseInt($("#p-days").value)||2)-1);
+  const used=TRIP.cities.reduce((s,c)=>s+(state.on[c.id]?state.nights[c.id]:0),0);
+  const st=$("#nstatus");
+  if(used===need){st.className="nights-status"; st.innerHTML="✅ 过夜数 "+used+" / "+need+" —— 正好匹配总天数";}
+  else{st.className="nights-status bad"; st.innerHTML="⚠️ 已分配 "+used+" 晚，但 "+$("#p-days").value+" 天行程需要 "+need+" 晚 —— 请调整，或 <u style='cursor:pointer' id='autofix'>点此自动分配</u>";
+    const af=document.getElementById("autofix");
+    if(af) af.addEventListener("click",autoAllocate);
+  }
+  $("#attpick").innerHTML=TRIP.cities.filter(c=>state.on[c.id]).map(c=>
+    "<details><summary>"+c.flag+" "+esc(c.zh)+"（已选 "+Object.keys(state.atts[c.id]).filter(k=>state.atts[c.id][k]).length+"/"+c.atts.length+"）</summary><div class='apl'>"+
+    c.atts.map((a,i)=>'<label><input type="checkbox" data-c="'+c.id+'" data-i="'+i+'" '+(state.atts[c.id][i]?"checked":"")+"><span>"+esc(a.zh)+' <small class="enin">'+esc(a.en)+"</small></span><span class='r'>★"+a.r+" · "+a.h+"h</span></label>").join("")+
+    "</div></details>").join("");
+  $$("#attpick input").forEach(cb=>cb.addEventListener("change",()=>{
+    state.atts[cb.dataset.c][cb.dataset.i]=cb.checked; saveState();
+  }));
+}
+$("#p-date").addEventListener("change",e=>{state.date=e.target.value; saveState();});
+$("#p-days").addEventListener("change",e=>{state.days=parseInt(e.target.value)||9; saveState(); renderControls();});
+$("#p-budget").addEventListener("change",e=>{state.budget=e.target.value; saveState();});
+
+function autoAllocate(){
+  const need=Math.max(0,state.days-1);
+  const sel=TRIP.cities.filter(c=>state.on[c.id]);
+  const weights=sel.map(c=>c.nights===0?0.25:c.nights);
+  const wsum=weights.reduce((a,b)=>a+b,0)||1;
+  let alloc=sel.map((c,i)=>({id:c.id, exact:need*weights[i]/wsum}));
+  alloc.forEach(a=>{a.n=Math.floor(a.exact);});
+  let rest=need-alloc.reduce((s,a)=>s+a.n,0);
+  alloc.slice().sort((a,b)=>(b.exact-Math.floor(b.exact))-(a.exact-Math.floor(a.exact))).forEach(a=>{if(rest>0){a.n++;rest--;}});
+  TRIP.cities.forEach(c=>{state.nights[c.id]=0;});
+  alloc.forEach(a=>{state.nights[a.id]=a.n;});
+  saveState(); renderControls();
+}
+
+$("#reset").addEventListener("click",()=>{
+  state=JSON.parse(JSON.stringify(DEFAULTS)); state.atts=defaultAttSel(); saveState();
+  renderControls(); drawRoute(); renderRank(); generate();
+});
+$("#printbtn").addEventListener("click",()=>window.print());
+$("#gen").addEventListener("click",()=>{generate(); drawRoute();});
+
+let planText="";
+$("#copybtn").addEventListener("click",()=>{
+  if(!planText){generate();}
+  const done=()=>{$("#copybtn").textContent="✅ 已复制"; setTimeout(()=>{$("#copybtn").textContent="📋 复制为文本";},2000);};
+  try{
+    navigator.clipboard.writeText(planText).then(done).catch(()=>{fallbackCopy(planText);done();});
+  }catch(e){fallbackCopy(planText);done();}
+});
+function fallbackCopy(t){
+  const ta=document.createElement("textarea"); ta.value=t; document.body.appendChild(ta);
+  ta.select(); try{document.execCommand("copy");}catch(e){} document.body.removeChild(ta);
+}
+
+/* ----- 分享链接：把全部选择压缩编码进 URL（无需服务器）----- */
+function encodeShare(){
+  const c={};
+  TRIP.cities.forEach(ct=>{
+    let mask=0; ct.atts.forEach((a,i)=>{if(state.atts[ct.id][i])mask|=(1<<i);});
+    c[ct.id]=[state.on[ct.id]?1:0,state.nights[ct.id],mask];
+  });
+  const json=JSON.stringify({d:state.date,y:state.days,b:state.budget,c:c});
+  return btoa(unescape(encodeURIComponent(json))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function decodeShare(s){
+  try{
+    s=s.replace(/-/g,"+").replace(/_/g,"/");
+    while(s.length%4)s+="=";
+    const obj=JSON.parse(decodeURIComponent(escape(atob(s))));
+    const ns=JSON.parse(JSON.stringify(DEFAULTS)); ns.atts=defaultAttSel();
+    if(obj.d)ns.date=obj.d; if(obj.y)ns.days=obj.y; if(obj.b)ns.budget=obj.b;
+    TRIP.cities.forEach(ct=>{
+      const v=obj.c&&obj.c[ct.id];
+      if(v){ns.on[ct.id]=!!v[0]; ns.nights[ct.id]=v[1]||0;
+        ct.atts.forEach((a,i)=>{ns.atts[ct.id][i]=!!(v[2]&(1<<i));});}
+      else{ns.on[ct.id]=false; ns.nights[ct.id]=0;}
+    });
+    return ns;
+  }catch(e){return null;}
+}
+$("#sharebtn").addEventListener("click",()=>{
+  const url=location.href.split("#")[0]+"#s="+encodeShare();
+  const done=()=>{$("#sharebtn").textContent="✅ 链接已复制"; setTimeout(()=>{$("#sharebtn").textContent="🔗 分享链接";},2000);};
+  try{navigator.clipboard.writeText(url).then(done).catch(()=>{fallbackCopy(url);done();});}catch(e){fallbackCopy(url);done();}
+});
+
+/* ----- 生成器：computePlan(排程) → renderPlan(渲染+拖拽+清单+天气) ----- */
+function fmtDate(d){return (d.getMonth()+1)+"/"+d.getDate();}
+function addDays(d,n){const x=new Date(d.getTime()); x.setDate(x.getDate()+n); return x;}
+function isoDate(d){const m=d.getMonth()+1,dd=d.getDate();return d.getFullYear()+"-"+(m<10?"0":"")+m+"-"+(dd<10?"0":"")+dd;}
+
+let lastPlan=null;
+
+function computePlan(){
+  const startParts=($("#p-date").value||"2026-08-01").split("-");
+  const start=new Date(parseInt(startParts[0]),parseInt(startParts[1])-1,parseInt(startParts[2]));
+  const days=parseInt($("#p-days").value)||9;
+  const budget=$("#p-budget").value;
+  const sel=TRIP.cities.filter(c=>state.on[c.id]);
+  if(sel.length===0) return {err:"请至少选择一个城市"};
+
+  const need=days-1;
+  const used=sel.reduce((s,c)=>s+state.nights[c.id],0);
+
+  /* 0晚城市合并为下一站"途经" */
+  const blocks=[]; let pendingVia=[];
+  sel.forEach((c,ci)=>{
+    const leg=ci>0?getLeg(sel[ci-1],c):null;
+    const isLast=ci===sel.length-1;
+    if(state.nights[c.id]===0&&!isLast){
+      pendingVia.push({city:c,leg:leg});
+    }else{
+      blocks.push({city:c,nights:state.nights[c.id],via:pendingVia,leg:leg});
+      pendingVia=[];
+    }
+  });
+  if(blocks.length===0) return {err:"请给至少一个城市分配过夜数"};
+
+  const dayList=[]; let cur=0;
+  blocks.forEach((b,bi)=>{
+    const dcount=Math.max(1,b.nights+(bi===blocks.length-1?1:0));
+    for(let d=0;d<dcount;d++){
+      dayList.push({date:addDays(start,cur),city:b.city,isArrival:d===0,leg:d===0?b.leg:null,via:d===0?b.via:[]});
+      cur++;
+    }
+  });
+
+  const plans=dayList.map(()=>({items:[],evening:null,cap:8,hasMorning:false}));
+  dayList.forEach((d,i)=>{
+    if(d.isArrival){
+      let travel=0;
+      d.via.forEach(v=>{if(v.leg)travel+=v.leg.durH;});
+      if(d.leg)travel+=d.leg.durH;
+      if(travel>0)plans[i].cap=Math.max(2,8-travel-0.5);
+    }
+  });
+  const byCity={};
+  dayList.forEach((d,i)=>{(byCity[d.city.id]=byCity[d.city.id]||[]).push(i);});
+
+  dayList.forEach((d,i)=>{
+    d.via.forEach(v=>{
+      v.city.atts.map((a,ai)=>({a,ai})).filter(x=>state.atts[v.city.id][x.ai])
+        .sort((x,y)=>y.a.rec-x.a.rec||y.a.r-x.a.r)
+        .forEach(x=>{
+          const a=x.a;
+          if(a.slot==="evening"){if(!plans[i].evening)plans[i].evening={a,city:v.city,warn:null};return;}
+          if(plans[i].cap>=a.h){plans[i].items.push({a,city:v.city,warn:null});plans[i].cap-=a.h;}
+          else plans[i].items.push({a,city:v.city,warn:"当日偏满,可机动"});
+        });
+    });
+  });
+
+  blocks.forEach(b=>{
+    const c=b.city, idxs=byCity[c.id]||[];
+    c.atts.map((a,ai)=>({a,ai})).filter(x=>state.atts[c.id][x.ai])
+      .sort((x,y)=>y.a.rec-x.a.rec||y.a.r-x.a.r)
+      .forEach(x=>{
+        const a=x.a;
+        let best=-1,ok=false;
+        for(const i of idxs){
+          const p=plans[i], wd=dayList[i].date.getDay();
+          const closed=a.closed&&a.closed.indexOf(wd)>=0;
+          if(a.slot==="evening"){
+            if(p.evening)continue;
+            if(!closed){best=i;ok=true;break;}
+            if(best<0)best=i;
+          }else{
+            if(p.cap<a.h)continue;
+            if(a.slot==="morning"&&p.hasMorning)continue;
+            if(!closed){best=i;ok=true;break;}
+            if(best<0)best=i;
+          }
+        }
+        if(best<0){
+          let mx=-1;
+          idxs.forEach(i=>{if(plans[i].cap>mx){mx=plans[i].cap;best=i;}});
+          if(best<0)best=idxs[0];
+          const wdh=dayList[best].date.getDay();
+          const closedH=a.closed&&a.closed.indexOf(wdh)>=0;
+          const item={a,city:c,warn:closedH?"⚠️当天闭馆(周"+WD[wdh]+")":"当日偏满,可机动"};
+          if(a.slot==="evening"&&!plans[best].evening)plans[best].evening=item;else plans[best].items.push(item);
+          return;
+        }
+        const wd=dayList[best].date.getDay();
+        const closed=a.closed&&a.closed.indexOf(wd)>=0;
+        const item={a,city:c,warn:(!ok&&closed)?"⚠️当天闭馆(周"+WD[wd]+")——需换天":null};
+        if(a.slot==="evening"){plans[best].evening=item;}
+        else{plans[best].items.push(item);plans[best].cap-=a.h;if(a.slot==="morning")plans[best].hasMorning=true;}
+      });
+  });
+
+  return {start:start,days:days,budget:budget,sel:sel,used:used,need:need,blocks:blocks,dayList:dayList,plans:plans};
+}
+
+function generate(){
+  const p=computePlan();
+  if(p.err){$("#output").innerHTML='<div class="placeholder">'+esc(p.err)+"</div>"; planText=""; lastPlan=null; return;}
+  lastPlan=p;
+  renderPlan(p);
+}
+
+/* ----- 拖拽 ----- */
+function moveItem(p,drag,dst,beforeJ){
+  if(drag.d===dst&&drag.t==="evening")return;
+  let it=null;
+  if(drag.t==="evening"){it=p.plans[drag.d].evening; p.plans[drag.d].evening=null;}
+  else{it=p.plans[drag.d].items.splice(drag.j,1)[0];}
+  if(!it){renderPlan(p);return;}
+  if(typeof beforeJ==="number"&&dst===drag.d&&drag.t==="items"&&drag.j<beforeJ)beforeJ--;
+  const wd=p.dayList[dst].date.getDay();
+  it.warn=(it.a.closed&&it.a.closed.indexOf(wd)>=0)?"⚠️当天闭馆(周"+WD[wd]+")":null;
+  if(it.a.slot==="evening"&&!p.plans[dst].evening){p.plans[dst].evening=it;}
+  else if(typeof beforeJ==="number"){p.plans[dst].items.splice(beforeJ,0,it);}
+  else{p.plans[dst].items.push(it);}
+  renderPlan(p);
+}
+
+function attachPlanEvents(p){
+  let drag=null;
+  $$("#output .oit[draggable]").forEach(el=>{
+    el.addEventListener("dragstart",e=>{
+      drag={d:parseInt(el.dataset.d),t:el.dataset.t,j:parseInt(el.dataset.j)};
+      e.dataTransfer.effectAllowed="move";
+      try{e.dataTransfer.setData("text/plain","move");}catch(err){}
+    });
+  });
+  $$("#output .oday").forEach(dayEl=>{
+    dayEl.addEventListener("dragover",e=>{e.preventDefault(); dayEl.classList.add("dragover");});
+    dayEl.addEventListener("dragleave",()=>dayEl.classList.remove("dragover"));
+    dayEl.addEventListener("drop",e=>{
+      e.preventDefault(); dayEl.classList.remove("dragover");
+      if(!drag)return;
+      const dst=parseInt(dayEl.dataset.day);
+      let beforeJ=null;
+      const overIt=e.target&&e.target.closest?e.target.closest(".oit[draggable]"):null;
+      if(overIt&&parseInt(overIt.dataset.d)===dst&&overIt.dataset.t==="items")beforeJ=parseInt(overIt.dataset.j);
+      moveItem(p,drag,dst,beforeJ);
+      drag=null;
+    });
+  });
+  $$("#output .cklist input").forEach(cb=>cb.addEventListener("change",()=>{
+    const d=loadDone(); if(cb.checked)d[cb.dataset.k]=true; else delete d[cb.dataset.k]; saveDone(d);
+    cb.closest("label").classList.toggle("done",cb.checked);
+  }));
+  /* 点选移动模式（触屏/手机友好，桌面也可用） */
+  let pending=null;
+  function clearPending(){
+    pending=null;
+    $$("#output .oit.moving").forEach(x=>x.classList.remove("moving"));
+    const mh=document.getElementById("movehint"); if(mh)mh.classList.remove("show");
+  }
+  $$("#output .mv").forEach(btn=>{
+    btn.addEventListener("click",e=>{
+      e.stopPropagation();
+      const cur={d:parseInt(btn.dataset.d),t:btn.dataset.t,j:parseInt(btn.dataset.j)};
+      if(pending&&pending.d===cur.d&&pending.t===cur.t&&pending.j===cur.j){clearPending();return;}
+      clearPending();
+      pending=cur;
+      const row=btn.closest(".oit"); if(row)row.classList.add("moving");
+      const mh=document.getElementById("movehint");
+      if(mh){mh.textContent="✋ 已选中景点 —— 点击目标那一天的卡片完成移动 · 再点 ⇅ 取消"; mh.classList.add("show");}
+    });
+  });
+  $$("#output .oday").forEach(dayEl=>{
+    dayEl.addEventListener("click",e=>{
+      if(!pending)return;
+      if(e.target.closest("a")||e.target.closest(".mv")||e.target.closest(".dmap")||e.target.closest("input"))return;
+      const dst=parseInt(dayEl.dataset.day);
+      const mv=pending; clearPending();
+      moveItem(p,mv,dst,null);
+    });
+  });
+  /* 当日路线上图 */
+  $$("#output .dmap").forEach(btn=>btn.addEventListener("click",e=>{
+    e.stopPropagation();
+    showDayOnMap(p,parseInt(btn.dataset.day));
+  }));
+}
+
+/* ----- 在主地图上画出某一天的游览顺序 ----- */
+function showDayOnMap(p,di){
+  dayRouteLayer.clearLayers();
+  attLayer.clearLayers();
+  const d=p.dayList[di], pl=p.plans[di];
+  const seq=pl.items.slice(); if(pl.evening)seq.push(pl.evening);
+  const pts=[];
+  let n=0;
+  seq.forEach(it=>{
+    if(!it.a.c)return;
+    n++;
+    pts.push(it.a.c);
+    L.marker(it.a.c,{icon:L.divIcon({className:"",html:'<div class="dnum">'+n+"</div>",iconSize:[24,24],iconAnchor:[12,12]})})
+      .addTo(dayRouteLayer)
+      .bindPopup("<b>D"+(di+1)+" · 第"+n+"站</b><br>"+esc(it.a.zh)+" "+esc(it.a.en)+"<br>★"+it.a.r+" · 建议 "+it.a.h+"h · "+esc(it.a.price));
+  });
+  if(pts.length>1)L.polyline(pts,{color:"#c0512f",weight:3,dashArray:"4 6",opacity:.9}).addTo(dayRouteLayer);
+  if(pts.length){map.fitBounds(pts,{padding:[60,60],maxZoom:14});}
+  else{map.setView(d.city.c,11);}
+  const mapEl=document.getElementById("map");
+  if(mapEl&&mapEl.scrollIntoView)mapEl.scrollIntoView({behavior:"smooth",block:"center"});
+}
+
+/* ----- 订票倒计时清单 ----- */
+function loadDone(){try{return JSON.parse(localStorage.getItem("bookDone"))||{}}catch(e){return{}}}
+function saveDone(d){try{localStorage.setItem("bookDone",JSON.stringify(d))}catch(e){}}
+function buildChecklist(p){
+  const items=[];
+  const arrive={};
+  p.dayList.forEach(d=>{
+    d.via.forEach(v=>{if(!(v.city.id in arrive))arrive[v.city.id]=d.date;});
+    if(!(d.city.id in arrive))arrive[d.city.id]=d.date;
+  });
+  p.sel.forEach(c=>{
+    c.atts.forEach((a,i)=>{
+      if(a.pre&&state.atts[c.id][i]){
+        items.push({key:"att:"+c.id+":"+i,label:a.pre.label,note:c.zh+" · "+a.zh,deadline:addDays(arrive[c.id]||p.start,-a.pre.d)});
+      }
+    });
+  });
+  const legDates=[];
+  p.dayList.forEach(d=>{
+    d.via.forEach(v=>{if(v.leg)legDates.push({leg:v.leg,date:d.date});});
+    if(d.leg)legDates.push({leg:d.leg,date:d.date});
+  });
+  legDates.forEach((x,n)=>{
+    if(x.leg.pre)items.push({key:"leg:"+n+":"+x.leg.name,label:x.leg.pre.label,note:fmtDate(x.date)+" 出行",deadline:addDays(x.date,-x.leg.pre.d)});
+  });
+  p.blocks.forEach(b=>{
+    if(b.nights>0)items.push({key:"hotel:"+b.city.id,label:"预订 "+b.city.zh+" 住宿（"+b.nights+"晚）",note:"锁定可免费取消的房价",deadline:addDays(arrive[b.city.id]||p.start,-60)});
+  });
+  const firstDrive=legDates.filter(x=>x.leg.mode==="drive"&&!x.leg.auto)[0];
+  if(firstDrive)items.push({key:"car",label:"预订租车 + 办IDP国际驾照(CAA)",note:"比价 rentalcars/discovercars，确认单程费与跨境许可",deadline:addDays(firstDrive.date,-45)});
+  items.sort((a,b)=>a.deadline-b.deadline);
+  return items;
+}
+function checklistHtml(p){
+  const items=buildChecklist(p); if(!items.length)return "";
+  const done=loadDone();
+  const today=new Date(); today.setHours(0,0,0,0);
+  return '<div class="osum cklist"><b class="big">🎫 订票行动清单</b><div style="font-size:12.5px;color:var(--muted);margin:3px 0 8px">根据你选的景点和交通自动生成 · 按最晚下手日排序 · 勾选进度自动保存</div>'+
+    items.map(it=>{
+      const past=it.deadline<today;
+      const daysLeft=Math.round((it.deadline-today)/86400000);
+      const when=past?"⏰ 尽快！最佳时间已过":"最晚 "+fmtDate(it.deadline)+(daysLeft<=14?"（剩"+daysLeft+"天）":"");
+      return '<label class="'+(done[it.key]?"done":"")+'"><input type="checkbox" data-k="'+esc(it.key)+'" '+(done[it.key]?"checked":"")+'><span><b>'+esc(it.label)+'</b> <small class="subnote">'+esc(it.note)+'</small></span><em class="'+((past||daysLeft<=14)?"hot":"")+'">'+when+"</em></label>";
+    }).join("")+"</div>";
+}
+
+/* ----- 实时天气（Open-Meteo 免费接口，16天预报）----- */
+const wxCache={};
+function wmoIcon(code){
+  const t=[[0,"☀️"],[1,"🌤️"],[2,"⛅"],[3,"☁️"],[45,"🌫️"],[51,"🌦️"],[61,"🌧️"],[71,"🌨️"],[80,"🌧️"],[95,"⛈️"]];
+  let icon="🌤️"; t.forEach(w=>{if(code>=w[0])icon=w[1];}); return icon;
+}
+function fetchWx(city){
+  if(wxCache[city.id])return Promise.resolve(wxCache[city.id]);
+  return fetch("https://api.open-meteo.com/v1/forecast?latitude="+city.c[0]+"&longitude="+city.c[1]+"&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=16")
+    .then(r=>r.json()).then(j=>{wxCache[city.id]=j.daily; return j.daily;}).catch(()=>null);
+}
+function fillWeather(p){
+  const uniq={};
+  p.dayList.forEach(d=>{uniq[d.city.id]=d.city;});
+  Object.keys(uniq).forEach(id=>{
+    fetchWx(uniq[id]).then(daily=>{
+      if(!daily||!daily.time)return;
+      p.dayList.forEach((d,i)=>{
+        if(d.city.id!==id)return;
+        const k=daily.time.indexOf(isoDate(d.date));
+        if(k<0)return;
+        const el=document.getElementById("wx-"+i);
+        if(el)el.textContent=" · "+wmoIcon(daily.weather_code[k])+" "+Math.round(daily.temperature_2m_max[k])+"°/"+Math.round(daily.temperature_2m_min[k])+"° ☔"+daily.precipitation_probability_max[k]+"%";
+      });
+    });
+  });
+}
+
+function renderPlan(p){
+  const sel=p.sel, used=p.used, budget=p.budget, dayList=p.dayList, plans=p.plans;
+  let warnDays="";
+  if(used!==p.need) warnDays='<div class="osum" style="background:#fde8e8"><b>⚠️ 过夜数('+used+')与天数('+p.days+'天='+p.need+'晚)不匹配</b>——以下按你分配的晚数排出 '+(used+1)+' 天；可点「自动分配」修正。</div>';
+
+  const nightsTags=sel.map(c=>'<span class="pill">'+c.flag+esc(c.zh)+" "+(state.nights[c.id]===0?"途经":state.nights[c.id]+"晚")+"</span>").join("");
+  const TIER_MID={budget:90,comfort:145,luxury:330};
+  const hotelPP=used*TIER_MID[budget]/2;
+  const estLow=Math.round(hotelPP+dayList.length*45+90+(sel.some(c=>c.id==="lakes"||c.id==="kon")?150:0));
+  const estHigh=Math.round(hotelPP+dayList.length*65+170+(sel.some(c=>c.id==="lakes"||c.id==="kon")?230:0));
+
+  let html='<div class="osum"><b class="big">📋 你的定制行程 · '+dayList.length+"天"+used+"晚 · "+esc(TIER_LABEL[budget])+'</b>'+
+    '<div class="tags">'+nightsTags+"</div>"+
+    '<div style="margin-top:9px;font-size:13.5px">💶 人均估算（2人同行·不含跨洋机票）：<b class="price">€'+estLow+" – €"+estHigh+"</b>（住宿均摊+餐饮+门票+市内交通）</div></div>"+warnDays;
+
+  let txt="🧭 定制行程 · "+dayList.length+"天"+used+"晚 · 出发"+state.date+"\n"+
+    sel.map(c=>c.zh+"("+(state.nights[c.id]===0?"途经":state.nights[c.id]+"晚")+")").join(" → ")+"\n"+
+    "人均估算 €"+estLow+"–€"+estHigh+"（不含机票）\n\n";
+
+  dayList.forEach((d,i)=>{
+    const pl=plans[i], wd=d.date.getDay();
+    const viaLabel=d.via.length?"（经 "+d.via.map(v=>esc(v.city.zh)).join("、")+"）":"";
+    html+='<div class="oday" data-day="'+i+'"><div class="oday-h">'+
+      '<div class="d"><b>D'+(i+1)+"</b><small>"+fmtDate(d.date)+" 周"+WD[wd]+"</small></div>"+
+      '<div class="ttl">'+d.city.flag+" "+esc(d.city.zh)+viaLabel+'<small>'+esc(d.city.tagline)+'<span class="wx" id="wx-'+i+'"></span></small></div>'+
+      '<button class="dmap" data-day="'+i+'" title="在地图上显示当日游览路线">🗺️ 上图</button></div>'+
+      '<div class="oday-b">';
+    txt+="D"+(i+1)+" "+fmtDate(d.date)+" 周"+WD[wd]+"　"+d.city.zh+(d.via.length?"（经 "+d.via.map(v=>v.city.zh).join("、")+"）":"")+"\n";
+    d.via.forEach(v=>{
+      if(v.leg){html+='<div class="oleg">'+v.leg.icon+" <b>"+esc(v.leg.name)+"</b> → 途经 "+esc(v.city.zh)+" · "+esc(v.leg.dur)+" · "+esc(v.leg.price)+' · <a href="'+v.leg.url+'" target="_blank">'+esc(v.leg.book)+" ↗</a></div>";
+        txt+="  "+v.leg.icon+" "+v.leg.name+" → "+v.city.zh+"（"+v.leg.dur+"，"+v.leg.price+"）\n";}
+    });
+    if(d.leg){html+='<div class="oleg">'+d.leg.icon+" <b>"+esc(d.leg.name)+"</b> → 抵达 "+esc(d.city.zh)+" · "+esc(d.leg.dur)+" · "+esc(d.leg.price)+' · <a href="'+d.leg.url+'" target="_blank">'+esc(d.leg.book)+" ↗</a>"+(d.leg.note?'<br><small class="subnote">💡 '+esc(d.leg.note)+"</small>":"")+"</div>";
+      txt+="  "+d.leg.icon+" "+d.leg.name+" → "+d.city.zh+"（"+d.leg.dur+"，"+d.leg.price+"）\n";}
+    if(pl.items.length===0&&!pl.evening){html+='<div class="oit"><span class="ic">🌿</span><span>自由活动 / 机动缓冲日（可把其他天的景点拖进来）</span></div>'; txt+="  🌿 自由活动\n";}
+    pl.items.forEach((it,j)=>{
+      html+='<div class="oit" draggable="true" data-d="'+i+'" data-t="items" data-j="'+j+'"><span class="ic">'+(it.a.slot==="morning"?"🌅":"📍")+'</span><span><b>'+esc(it.a.zh)+'</b> <small class="enin">'+esc(it.a.en)+"</small>"+
+        (it.warn?' <span class="warn">'+esc(it.warn)+"</span>":"")+
+        ' · <a href="'+gm(it.a.en+" "+it.city.en)+'" target="_blank" style="font-size:12px">地图↗</a></span>'+
+        '<span class="r">★'+it.a.r+" · "+it.a.h+"h · "+esc(it.a.price)+"</span>"+
+        '<button class="mv" data-d="'+i+'" data-t="items" data-j="'+j+'" title="移到其他天">⇅</button></div>';
+      txt+="  "+(it.a.slot==="morning"?"🌅":"📍")+" "+it.a.zh+" "+it.a.en+"（★"+it.a.r+"，"+it.a.h+"h，"+it.a.price+"）"+(it.warn?"【"+it.warn+"】":"")+"\n";
+    });
+    if(pl.evening){
+      const it=pl.evening;
+      html+='<div class="oit" draggable="true" data-d="'+i+'" data-t="evening" data-j="0"><span class="ic">🌙</span><span><b>'+esc(it.a.zh)+'</b> <small class="enin">'+esc(it.a.en)+"</small>"+(it.warn?' <span class="warn">'+esc(it.warn)+"</span>":"")+
+        ' · <a href="'+gm(it.a.en+" "+it.city.en)+'" target="_blank" style="font-size:12px">地图↗</a></span><span class="r">★'+it.a.r+"</span>"+
+        '<button class="mv" data-d="'+i+'" data-t="evening" data-j="0" title="移到其他天">⇅</button></div>';
+      txt+="  🌙 "+it.a.zh+" "+it.a.en+"（★"+it.a.r+"）\n";
+    }
+    const hotels=(d.city.hotels[budget]||[]);
+    if(hotels.length&&i<dayList.length-1){
+      const h=hotels[0];
+      html+='<div class="ohotel">🛏️ <a href="'+gm(h.n+" "+d.city.en+" hotel")+'" target="_blank"><b>'+esc(h.n)+'</b> ↗</a> · <span class="price">'+esc(h.p)+"</span> · "+esc(h.note)+
+        (hotels[1]?'　|　备选: <a href="'+gm(hotels[1].n+" "+d.city.en+" hotel")+'" target="_blank">'+esc(hotels[1].n)+" ↗</a>":"")+"</div>";
+      txt+="  🛏️ "+h.n+"（"+h.p+"）\n";
+    }
+    if(i===dayList.length-1){
+      const out=TRIP.legs[d.city.id+">out"];
+      if(out){html+='<div class="oleg">'+out.icon+" <b>离境："+esc(out.name)+"</b> · "+esc(out.dur)+" · "+esc(out.price)+' · <a href="'+out.url+'" target="_blank">详情 ↗</a><br><small class="subnote">💡 '+esc(out.note)+"</small></div>";
+        txt+="  "+out.icon+" 离境："+out.name+"（"+out.dur+"，"+out.price+"）\n";}
+    }
+    html+="</div></div>";
+    txt+="\n";
+  });
+  html+=checklistHtml(p);
+  html+='<div class="osum" style="font-size:13px;color:#555">🌅=建议赶早 🌙=夜间/傍晚体验 · ✋ 可直接<b>拖拽景点</b>到别的天或调整顺序（闭馆检查自动更新）· 出发前16天内每日行程自动显示实时天气 · 点击"地图↗"直达 Google Maps</div>';
+  $("#output").innerHTML=html;
+  planText=txt;
+  attachPlanEvents(p);
+  fillWeather(p);
+}
+
+/* ---------- Section 4: timetable ---------- */
+$("#tt").innerHTML="<tr><th>线路</th><th>方式</th><th>班次频率</th><th>运行时段</th><th>时长</th><th>票价</th><th>购票</th></tr>"+
+  TRIP.timetable.map(t=>"<tr><td><b>"+esc(t.route)+"</b>"+(t.note?"<span class='en'>"+esc(t.note)+"</span>":"")+"</td><td>"+esc(t.mode)+"</td><td>"+esc(t.freq)+"</td><td>"+esc(t.span)+"</td><td>"+esc(t.dur)+'</td><td class="price">'+esc(t.price)+'</td><td><a href="'+t.url+'" target="_blank">'+esc(t.book)+" ↗</a></td></tr>").join("");
+
+/* ---------- Section 5: master table ---------- */
+let masterRows=[];
+TRIP.cities.forEach(c=>c.atts.forEach(a=>masterRows.push({city:c,a})));
+let sortKey="rec",sortDir=-1,filterText="";
+function renderMaster(){
+  masterRows.sort((x,y)=>{
+    let vx,vy;
+    if(sortKey==="r"){vx=x.a.r;vy=y.a.r;}
+    else if(sortKey==="h"){vx=x.a.h;vy=y.a.h;}
+    else if(sortKey==="city"){vx=TRIP.cities.indexOf(x.city);vy=TRIP.cities.indexOf(y.city);}
+    else {vx=x.a.rec;vy=y.a.rec;}
+    return (vx<vy?-1:vx>vy?1:0)*sortDir;
+  });
+  const f=filterText.toLowerCase();
+  const rows=masterRows.filter(x=>!f||x.a.zh.toLowerCase().indexOf(f)>=0||x.a.en.toLowerCase().indexOf(f)>=0||x.city.zh.indexOf(f)>=0||x.city.en.toLowerCase().indexOf(f)>=0);
+  const arrow=k=>sortKey===k?(sortDir===-1?" ▼":" ▲"):"";
+  $("#master").innerHTML="<tr>"+
+    '<th class="sortable" data-k="city">城市'+arrow("city")+"</th><th>景点</th>"+
+    '<th class="sortable" data-k="r">评分'+arrow("r")+"</th>"+
+    '<th class="sortable" data-k="rec">推荐度'+arrow("rec")+"</th>"+
+    '<th class="sortable" data-k="h">建议停留'+arrow("h")+"</th><th>门票</th><th>链接</th></tr>"+
+    rows.map(x=>"<tr><td>"+x.city.flag+" "+esc(x.city.zh)+"</td>"+
+      "<td><b>"+esc(x.a.zh)+"</b><span class='en'>"+esc(x.a.en)+"</span></td>"+
+      '<td class="gstar">★ '+x.a.r+"</td><td>"+"⭐".repeat(x.a.rec)+"</td><td>"+x.a.h+" 小时</td>"+
+      '<td class="price">'+esc(x.a.price)+"</td>"+
+      "<td>"+(x.a.url?'<a href="'+x.a.url+'" target="_blank">官网↗</a> · ':"")+'<a href="'+gm(x.a.en+" "+x.city.en)+'" target="_blank">地图↗</a></td></tr>').join("")+
+    (rows.length===0?'<tr><td colspan="7" style="text-align:center;color:#999">没有匹配的景点</td></tr>':"");
+  $$("#master th.sortable").forEach(th=>th.addEventListener("click",()=>{
+    const k=th.dataset.k;
+    if(sortKey===k) sortDir=-sortDir; else {sortKey=k;sortDir=-1;}
+    renderMaster();
+  }));
+}
+$("#attsearch").addEventListener("input",e=>{filterText=e.target.value.trim(); renderMaster();});
+
+/* ---------- init ---------- */
+if(location.hash.slice(0,3)==="#s="){
+  const shared=decodeShare(location.hash.slice(3));
+  if(shared){state=shared; saveState(); try{history.replaceState(null,"",location.pathname+location.search);}catch(e){}}
+}
+renderControls();
+drawRoute();
+renderRank();
+selectCity("lakes",false);
+generate();
+renderMaster();
+
+/* ---------- nav spy + totop ---------- */
+const secs=Array.prototype.slice.call($$("main section")), links=Array.prototype.slice.call($$("nav a"));
+const spy=new IntersectionObserver(es=>{
+  es.forEach(e=>{if(e.isIntersecting){
+    links.forEach(l=>l.classList.toggle("active",l.getAttribute("href")==="#"+e.target.id));
+  }});
+},{rootMargin:"-25% 0px -65% 0px"});
+secs.forEach(s=>spy.observe(s));
+window.addEventListener("scroll",()=>{
+  document.getElementById("totop").classList.toggle("show",window.scrollY>600);
+});
+document.getElementById("totop").addEventListener("click",()=>window.scrollTo({top:0,behavior:"smooth"}));
+</script>
+</body>
+</html>
